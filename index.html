@@ -276,11 +276,6 @@
     </div>
   </div>
 
-  <div class="banner">
-    <span>⚠️ このメニュー表は共有データです。このリンクを知っている人は誰でも閲覧・編集できます。友人にはこのページのリンクを共有してください。</span>
-    <span class="status" id="statusText"></span>
-  </div>
-
   <div id="exportRoot">
     <div class="masthead">
       <div class="eyebrow">FRIENDS RUNNING CREW</div>
@@ -396,8 +391,12 @@ function ensureDay(key){
   if(!state.dayData[key]) state.dayData[key] = {type:'',menu:'',distance:'',pace:'',memo:'',weather:null,done:false};
   return state.dayData[key];
 }
-function setStatus(text){ document.getElementById('statusText').textContent = text; }
-function isEditingNow(){
+function setStatus(text){
+  const el = document.getElementById('statusText');
+  if (el) {
+    el.textContent = text;
+  }
+}function isEditingNow(){
   const a = document.activeElement;
   return a && a.isContentEditable;
 }
