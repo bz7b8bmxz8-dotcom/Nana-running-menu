@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ランニングメニュー表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#F3F5F3;
+    --panel:#FFFFFF;
+    --ink:#1B2430;
+    --ink-soft:#5B6472;
+    --track-blue:#1C3F94;
+    --track-blue-deep:#132C6B;
+    --lane-yellow:#F4C10F;
+    --route-red:#E1483D;
+    --sage:#6E9075;
+    --sage-bg:#EEF5F0;
+    --line:#DCE0E2;
+    --line-soft:#EAEDEE;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:28px 16px 60px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+
+  .toolbar{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    justify-content:space-between;margin-bottom:10px;
+  }
+  .nav-group,.month-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  button{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:13px;
+    border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);
+    padding:8px 14px;border-radius:6px;cursor:pointer;transition:.15s;
+  }
+  button:hover{background:var(--ink);color:#fff;}
+  button.icon{padding:8px 10px;}
+  select{
+    font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;
+    border:1.5px solid var(--line);border-radius:6px;
+  }
+  select:focus{outline:2px solid var(--lane-yellow);border-color:var(--track-blue);}
+  .month-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;min-width:150px;text-align:center;}
+
+  .banner{
+    display:flex;align-items:center;gap:8px;justify-content:space-between;
+    background:#FFF7DD;border:1px solid #EFDD9A;border-radius:8px;
+    padding:9px 14px;font-size:12px;color:#6B5B12;margin-bottom:18px;flex-wrap:wrap;
+  }
+  .status{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+
+  #exportRoot{background:var(--paper);position:relative;}
+  .loading-overlay{
+    position:absolute;inset:0;background:rgba(243,245,243,.85);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-soft);
+    z-index:5;border-radius:10px;
+  }
+
+  .masthead{padding:6px 0 18px;}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+    letter-spacing:3px;color:var(--route-red);text-transform:uppercase;
+  }
+  .title{
+    font-family:'Bebas Neue',sans-serif;font-size:56px;line-height:.95;
+    letter-spacing:1px;color:var(--ink);margin:4px 0 10px;
+  }
+  .lanes{
+    height:6px;width:100%;
+    background:repeating-linear-gradient(90deg,var(--track-blue) 0 26px, transparent 26px 40px);
+    border-radius:3px;margin-bottom:4px;
+  }
+  .subline{font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
+  .subline b{color:var(--ink);}
+
+  .lapboard{
+    background:var(--track-blue);border-radius:10px;overflow:hidden;
+    display:flex;margin:20px 0 20px;box-shadow:0 4px 14px rgba(28,63,148,.18);
+  }
+  .lapcard{
+    flex:1;min-width:0;padding:12px 6px 14px;text-align:center;color:#fff;
+    border-right:1px solid rgba(255,255,255,.16);position:relative;
+  }
+  .lapcard:last-child{border-right:none;}
+  .lapcard.today{background:rgba(244,193,15,.16);}
+  .lapcard.today:after{
+    content:'TODAY';position:absolute;top:4px;left:0;right:0;
+    font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--lane-yellow);
+  }
+  .lap-dow{font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.75;margin-top:8px;}
+  .lap-date{font-family:'Bebas Neue',sans-serif;font-size:22px;margin:2px 0 6px;}
+  .lap-emoji{font-size:22px;line-height:1;margin-bottom:6px;}
+  .lap-temp{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;}
+  .lap-temp .lo{opacity:.6;font-weight:400;}
+  .lap-pop{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--lane-yellow);margin-top:4px;}
+
+  /* ---- type pill (練習内容) shared styling ---- */
+  .type-pill{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:10.5px;
+    border-radius:5px;border:1.5px solid var(--line);background:var(--paper);
+    color:var(--ink-soft);padding:3px 4px;width:100%;cursor:pointer;
+    text-align:center;appearance:none;-webkit-appearance:none;
+  }
+  .type-pill.t-jog{background:var(--sage-bg);color:var(--sage);border-color:var(--sage);}
+  .type-pill.t-point{background:#FCEBEA;color:var(--route-red);border-color:var(--route-red);}
+  .type-pill.t-junpoint{background:#FEF6DA;color:#8A6D06;border-color:var(--lane-yellow);}
+  .type-pill.t-off{background:var(--line-soft);color:var(--ink-soft);border-color:var(--line);}
+  .type-pill.t-race{background:var(--track-blue);color:#fff;border-color:var(--track-blue);}
+  .focus-type-select{font-size:14px;padding:8px 10px;border-radius:8px;font-weight:700;}
+
+  /* ---- focus card: large view of the selected day ---- */
+  .focus-card{
+    display:flex;gap:0;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;margin-bottom:24px;
+    box-shadow:0 6px 18px rgba(27,36,48,.06);
+  }
+  .focus-left{
+    background:var(--ink);color:#fff;padding:18px 20px;min-width:150px;
+    display:flex;flex-direction:column;justify-content:center;gap:10px;
+    border-right:4px dashed rgba(255,255,255,.25);position:relative;
+  }
+  .focus-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:2px;color:var(--lane-yellow);text-transform:uppercase;}
+  .focus-bib{font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:.9;}
+  .focus-dow{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:rgba(255,255,255,.75);}
+  .focus-done{
+    display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;
+    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:700;
+  }
+  .focus-done input{width:18px;height:18px;accent-color:var(--lane-yellow);cursor:pointer;}
+  .focus-done.done span{color:var(--lane-yellow);}
+  .focus-main{
+    padding:16px 22px;display:flex;flex-direction:column;justify-content:center;
+    gap:10px;border-right:1px solid var(--line);flex:1.3;min-width:220px;
+  }
+  .focus-mid{
+    padding:16px 22px;display:flex;flex-direction:column;justify-content:center;
+    gap:12px;border-right:1px solid var(--line);min-width:170px;
+  }
+  .focus-right{flex:1;padding:16px 22px;display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:190px;}
+  .focus-weather{
+    padding:16px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:4px;background:var(--paper);min-width:100px;border-left:1px solid var(--line);
+  }
+  .focus-w-emoji{font-size:32px;line-height:1;}
+  .focus-w-temp{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);}
+  .focus-field-label{
+    font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:1.5px;
+    color:var(--ink-soft);text-transform:uppercase;margin-bottom:2px;
+  }
+  .focus-field{
+    font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1.1;
+    outline:none;color:var(--ink);border-bottom:2px solid var(--line-soft);padding:2px 0;
+  }
+  .focus-field.dist{color:var(--route-red);}
+  .focus-field.pace{color:var(--track-blue);}
+  .focus-field[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;}
+  .focus-menu{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:19px;line-height:1.35;
+    outline:none;color:var(--ink);border-bottom:2px solid var(--line-soft);padding:2px 0;min-height:26px;
+  }
+  .focus-menu[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;font-weight:400;}
+  .focus-memo{
+    font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;color:var(--ink-soft);
+    outline:none;min-height:44px;
+  }
+  .focus-memo[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;}
+
+  .weekrow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px;}
+  .weekrow div{
+    text-align:center;font-family:'JetBrains Mono',monospace;font-size:11.5px;
+    font-weight:700;letter-spacing:1px;color:var(--ink-soft);text-transform:uppercase;
+  }
+  .weekrow div.sun{color:var(--route-red);}
+  .weekrow div.sat{color:var(--track-blue);}
+
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+  .cell{
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;
+    padding:8px 7px 8px;min-height:172px;display:flex;flex-direction:column;gap:3px;
+    position:relative;cursor:pointer;transition:box-shadow .12s;
+  }
+  .cell.pad{background:transparent;border:1px dashed var(--line-soft);min-height:172px;cursor:default;}
+  .cell.today{border:2px solid var(--lane-yellow);}
+  .cell.selected{outline:3px solid var(--track-blue);outline-offset:-1px;}
+  .cell.done{background:var(--sage-bg);border-color:var(--sage);}
+  .cell-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;}
+  .cell-top-left{display:flex;align-items:center;gap:5px;}
+  .chk{display:flex;align-items:center;cursor:pointer;}
+  .chk input{width:15px;height:15px;accent-color:var(--sage);cursor:pointer;}
+  .bib{
+    font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ink);
+    background:var(--line-soft);border-radius:5px;padding:1px 7px;
+    border-left:3px dashed var(--ink-soft);
+  }
+  .cell.sun .bib{color:var(--route-red);}
+  .cell.sat .bib{color:var(--track-blue);}
+  .wbadge{
+    font-size:14px;cursor:pointer;user-select:none;line-height:1;
+    padding:3px 5px;border-radius:5px;background:var(--paper);
+  }
+  .wbadge:hover{background:var(--line-soft);}
+  .wtemp{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-soft);text-align:right;margin-top:1px;}
+
+  .field{
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;
+    border-bottom:1px solid var(--line-soft);padding:2px 1px;margin-bottom:1px;
+    min-height:16px;outline:none;color:var(--ink);cursor:text;
+  }
+  .field.menu{font-family:'Inter',sans-serif;font-weight:700;font-size:12px;color:var(--ink);}
+  .field.dist{color:var(--route-red);}
+  .field.pace{color:var(--track-blue);}
+  .field[data-placeholder]:empty:before{content:attr(data-placeholder);color:#B7BEC4;font-weight:400;}
+  .memo{
+    font-family:'Inter',sans-serif;font-size:10.5px;color:var(--ink-soft);
+    outline:none;flex:1;margin-top:1px;line-height:1.3;overflow-wrap:anywhere;cursor:text;
+  }
+  .memo[data-placeholder]:empty:before{content:attr(data-placeholder);color:#B7BEC4;}
+
+  .footer{
+    margin-top:22px;display:flex;justify-content:space-between;align-items:center;
+    flex-wrap:wrap;gap:14px;padding-top:16px;border-top:1px solid var(--line);
+  }
+  .stats{display:flex;gap:26px;}
+  .stat-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.5px;color:var(--ink-soft);text-transform:uppercase;}
+  .stat-value{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--ink);}
+  .stat-value span{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink-soft);margin-left:3px;}
+  .legend{font-size:11px;color:var(--ink-soft);}
+  .legend b{color:var(--route-red);}
+
+  .exportbar{display:flex;justify-content:flex-end;margin-top:18px;}
+  .stopwatch-btn{
+    display:flex;align-items:center;gap:8px;padding:12px 20px;
+    background:var(--ink);color:#fff;border:none;border-radius:30px;
+    font-family:'Inter',sans-serif;font-weight:700;font-size:13.5px;
+    box-shadow:0 6px 16px rgba(27,36,48,.25);cursor:pointer;
+  }
+  .stopwatch-btn:hover{background:var(--track-blue-deep);}
+  .stopwatch-btn .dot{width:9px;height:9px;border-radius:50%;background:var(--lane-yellow);}
+
+  @media(max-width:700px){
+    .title{font-size:38px;}
+    .cell{min-height:185px;padding:7px 5px 8px;}
+    .bib{font-size:15px;padding:1px 5px;}
+    .lapboard{flex-wrap:wrap;}
+    .lapcard{flex:1 1 25%;border-bottom:1px solid rgba(255,255,255,.16);}
+    .focus-card{flex-wrap:wrap;}
+    .focus-left{border-right:none;border-bottom:4px dashed rgba(255,255,255,.25);width:100%;}
+    .focus-main,.focus-mid,.focus-right{border-right:none;border-bottom:1px solid var(--line);width:100%;}
+    .focus-weather{border-left:none;border-top:1px solid var(--line);width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="toolbar">
+    <div class="nav-group">
+      <button id="prevBtn">◀ 前月</button>
+      <div class="month-label" id="monthLabel">-</div>
+      <button id="nextBtn">次月 ▶</button>
+    </div>
+    <div class="month-group">
+      <select id="monthSelect"><option>読み込み中...</option></select>
+      <button id="refreshBtn" class="icon" title="最新の内容を取得">🔄 更新</button>
+    </div>
+  </div>
+
+  <div class="banner">
+    <span>⚠️ このメニュー表は共有データです。このリンクを知っている人は誰でも閲覧・編集できます。友人にはこのページのリンクを共有してください。</span>
+    <span class="status" id="statusText"></span>
+  </div>
+
+  <div id="exportRoot">
+    <div class="masthead">
+      <div class="eyebrow">FRIENDS RUNNING CREW</div>
+      <div class="title" id="titleText">RUNNING MENU</div>
+      <div class="lanes"></div>
+      <div class="subline">天気: <b>東京</b> の週間予報 ・ 日付をクリックすると下に大きく表示されます</div>
+    </div>
+
+    <div class="lapboard" id="lapboard"></div>
+
+    <div class="focus-card" id="focusCard">
+      <div class="focus-left">
+        <div class="focus-eyebrow">SELECTED DAY</div>
+        <div class="focus-bib" id="focusBib">-</div>
+        <div class="focus-dow" id="focusDow">-</div>
+        <label class="focus-done" id="focusDoneWrap">
+          <input type="checkbox" id="focusDoneCheckbox">
+          <span id="focusDoneLabel">未実施</span>
+        </label>
+      </div>
+      <div class="focus-main">
+        <div>
+          <div class="focus-field-label">練習内容</div>
+          <select class="type-pill focus-type-select" id="focusType">
+            <option value="">－ 未選択</option>
+            <option value="jog">jog</option>
+            <option value="point">ポイント</option>
+            <option value="junpoint">準ポイント</option>
+            <option value="off">OFF</option>
+            <option value="race">レース</option>
+          </select>
+        </div>
+        <div>
+          <div class="focus-field-label">メニュー</div>
+          <div class="focus-menu" contenteditable="true" data-placeholder="例: 20km jog + 流し4本" id="focusMenu"></div>
+        </div>
+      </div>
+      <div class="focus-mid">
+        <div>
+          <div class="focus-field-label">距離</div>
+          <div class="focus-field dist" contenteditable="true" data-placeholder="0 km" id="focusDistance"></div>
+        </div>
+        <div>
+          <div class="focus-field-label">目標ペース</div>
+          <div class="focus-field pace" contenteditable="true" data-placeholder="例: 5'30&quot;" id="focusPace"></div>
+        </div>
+      </div>
+      <div class="focus-right">
+        <div class="focus-field-label">メモ</div>
+        <div class="focus-memo" contenteditable="true" data-placeholder="体調や気づき、共有メモなど…" id="focusMemo"></div>
+      </div>
+      <div class="focus-weather">
+        <div class="focus-w-emoji" id="focusWEmoji">－</div>
+        <div class="focus-w-temp" id="focusWTemp"></div>
+      </div>
+    </div>
+
+    <div class="weekrow" id="weekrow"></div>
+    <div class="grid" id="grid"></div>
+
+    <div class="footer">
+      <div class="stats">
+        <div>
+          <div class="stat-label">合計走行距離</div>
+          <div class="stat-value" id="totalDist">0<span>km</span></div>
+        </div>
+        <div>
+          <div class="stat-label">実施日数</div>
+          <div class="stat-value" id="totalDays">0<span>日</span></div>
+        </div>
+      </div>
+      <div class="legend"><b>赤字</b>=距離 ・ <span style="color:var(--track-blue);font-weight:700;">青字</span>=目標ペース ・ ✓=実施済み</div>
+    </div>
+  </div>
+
+  <div class="exportbar">
+    <button class="stopwatch-btn" id="pdfBtn"><span class="dot"></span>この月のメニューをPDFでダウンロード</button>
+  </div>
+</div>
+
+<script>
+const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
+const WEATHER_CYCLE = ['','☀️','⛅','☁️','🌧️','❄️'];
+const TOKYO = {lat:35.6895, lon:139.6917};
+const TYPE_LABEL = {'':'－ 未選択', jog:'jog', point:'ポイント', junpoint:'準ポイント', off:'OFF', race:'レース'};
+const TYPE_CLASS = {'':'', jog:'t-jog', point:'t-point', junpoint:'t-junpoint', off:'t-off', race:'t-race'};
+const WMO = {
+  0:{e:'☀️'},1:{e:'🌤️'},2:{e:'⛅'},3:{e:'☁️'},
+  45:{e:'🌫️'},48:{e:'🌫️'},
+  51:{e:'🌦️'},53:{e:'🌦️'},55:{e:'🌦️'},
+  61:{e:'🌧️'},63:{e:'🌧️'},65:{e:'🌧️'},
+  71:{e:'❄️'},73:{e:'❄️'},75:{e:'❄️'},
+  80:{e:'🌦️'},81:{e:'🌧️'},82:{e:'🌧️'},
+  95:{e:'⛈️'},96:{e:'⛈️'},99:{e:'⛈️'}
+};
+function wmoIcon(code){ return (WMO[code]||{e:'—'}).e; }
+
+let state = {
+  year: new Date().getFullYear(),
+  month: new Date().getMonth(),
+  dayData: {},
+  forecast: {},
+  selectedDate: null
+};
+let saveTimer = null;
+let pollTimer = null;
+let loadToken = 0;
+
+function monthKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
+function storageKey(y,m){ return `month:${monthKey(y,m)}`; }
+function fmtDate(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+function ensureDay(key){
+  if(!state.dayData[key]) state.dayData[key] = {type:'',menu:'',distance:'',pace:'',memo:'',weather:null,done:false};
+  return state.dayData[key];
+}
+function setStatus(text){ document.getElementById('statusText').textContent = text; }
+function isEditingNow(){
+  const a = document.activeElement;
+  return a && a.isContentEditable;
+}
+
+/* ---------------- storage: load / save ---------------- */
+async function loadMonth(year, month, {silent=false}={}){
+  const myToken = ++loadToken;
+  if(!silent) showLoadingOverlay(true);
+  let days = {};
+  let existed = true;
+  try{
+    const res = await window.storage.get(storageKey(year,month), true);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      days = parsed.days || {};
+    }
+  }catch(e){
+    existed = false;
+  }
+  if(myToken !== loadToken) return;
+  state.year = year; state.month = month; state.dayData = days;
+
+  const now = new Date();
+  const todayKey = fmtDate(now.getFullYear(),now.getMonth(),now.getDate());
+  state.selectedDate = (now.getFullYear()===year && now.getMonth()===month) ? todayKey : fmtDate(year,month,1);
+
+  renderCalendar();
+  renderFocusCard();
+  if(!silent) showLoadingOverlay(false);
+  if(!existed){
+    saveNow();
+  }
+  refreshMonthSelect();
+}
+
+function scheduleSave(){
+  setStatus('入力中…');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 900);
+}
+
+async function saveNow(){
+  clearTimeout(saveTimer);
+  saveTimer = null;
+  setStatus('保存中…');
+  try{
+    await window.storage.set(storageKey(state.year, state.month), JSON.stringify({days: state.dayData, updatedAt: Date.now()}), true);
+    const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    setStatus('✓ 保存済み ' + t);
+    refreshMonthSelect();
+  }catch(e){
+    setStatus('⚠ 保存に失敗しました');
+  }
+}
+
+async function refreshMonthSelect(){
+  const sel = document.getElementById('monthSelect');
+  try{
+    const res = await window.storage.list('month:', true);
+    const keys = (res && res.keys) ? res.keys : [];
+    const months = keys.map(k=>k.replace('month:','')).sort();
+    const cur = monthKey(state.year, state.month);
+    if(!months.includes(cur)) months.push(cur);
+    months.sort();
+    sel.innerHTML = months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m.replace('-','年 ')}月</option>`).join('');
+  }catch(e){ /* ignore */ }
+}
+
+function showLoadingOverlay(show){
+  let ov = document.getElementById('loadingOverlay');
+  if(show){
+    if(!ov){
+      ov = document.createElement('div');
+      ov.id = 'loadingOverlay';
+      ov.className = 'loading-overlay';
+      ov.textContent = '読み込み中…';
+      document.getElementById('exportRoot').appendChild(ov);
+    }
+  }else if(ov){
+    ov.remove();
+  }
+}
+
+/* ---------------- rendering: calendar ---------------- */
+function renderWeekrow(){
+  const wr = document.getElementById('weekrow');
+  wr.innerHTML = WEEKDAY_JA.map((d,i)=>{
+    const cls = i===0?'sun':(i===6?'sat':'');
+    return `<div class="${cls}">${d}</div>`;
+  }).join('');
+}
+
+function typeOptionsHtml(selected){
+  return Object.keys(TYPE_LABEL).map(v=>`<option value="${v}"${v===selected?' selected':''}>${TYPE_LABEL[v]}</option>`).join('');
+}
+
+function renderCalendar(){
+  const {year,month} = state;
+  document.getElementById('monthLabel').textContent = `${year}年 ${month+1}月`;
+  document.getElementById('titleText').textContent = `${year}年${String(month+1).padStart(2,'0')}月 RUNNING MENU`;
+
+  const firstDow = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
+  const totalCells = Math.ceil((firstDow+daysInMonth)/7)*7;
+  const now = new Date();
+  const todayKey = fmtDate(now.getFullYear(),now.getMonth(),now.getDate());
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  for(let i=0;i<totalCells;i++){
+    const dayNum = i - firstDow + 1;
+    if(dayNum < 1 || dayNum > daysInMonth){
+      const pad = document.createElement('div');
+      pad.className = 'cell pad';
+      grid.appendChild(pad);
+      continue;
+    }
+    const dow = (firstDow + dayNum - 1) % 7;
+    const key = fmtDate(year,month,dayNum);
+    const data = ensureDay(key);
+    const isToday = key === todayKey;
+    const isSelected = key === state.selectedDate;
+
+    const cell = document.createElement('div');
+    cell.className = 'cell'
+      + (dow===0?' sun':dow===6?' sat':'')
+      + (isToday?' today':'')
+      + (isSelected?' selected':'')
+      + (data.done?' done':'');
+    cell.dataset.date = key;
+
+    const wtext = data.weather ? data.weather.text : '';
+    const wtemp = data.weather && data.weather.temp ? data.weather.temp : '';
+
+    cell.innerHTML = `
+      <div class="cell-top">
+        <div class="cell-top-left">
+          <label class="chk"><input type="checkbox" data-role="done" ${data.done?'checked':''}></label>
+          <div class="bib">${dayNum}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="wbadge" data-role="weather">${wtext || '－'}</div>
+          <div class="wtemp">${wtemp}</div>
+        </div>
+      </div>
+      <select class="type-pill ${TYPE_CLASS[data.type]||''}" data-role="type">${typeOptionsHtml(data.type)}</select>
+      <div class="field menu" contenteditable="true" data-placeholder="メニュー" data-role="menu">${data.menu||''}</div>
+      <div class="field dist" contenteditable="true" data-placeholder="0 km" data-role="distance">${data.distance||''}</div>
+      <div class="field pace" contenteditable="true" data-placeholder="ペース" data-role="pace">${data.pace||''}</div>
+      <div class="memo" contenteditable="true" data-placeholder="メモ" data-role="memo">${data.memo||''}</div>
+    `;
+    grid.appendChild(cell);
+  }
+
+  attachCellEvents();
+  updateStats();
+  if(Object.keys(state.forecast).length) applyForecastToCalendar();
+}
+
+function attachCellEvents(){
+  document.querySelectorAll('.cell[data-date]').forEach(cell=>{
+    const key = cell.dataset.date;
+    const data = ensureDay(key);
+
+    cell.addEventListener('click', ()=>{ selectDate(key); });
+
+    cell.querySelector('[data-role="menu"]').addEventListener('input', e=>{
+      data.menu = e.target.textContent.trim(); scheduleSave();
+      if(state.selectedDate===key) syncFocusFromData(key, {skip:'menu'});
+    });
+    cell.querySelector('[data-role="distance"]').addEventListener('input', e=>{
+      data.distance = e.target.textContent.trim(); updateStats(); scheduleSave();
+      if(state.selectedDate===key) syncFocusFromData(key, {skip:'distance'});
+    });
+    cell.querySelector('[data-role="pace"]').addEventListener('input', e=>{
+      data.pace = e.target.textContent.trim(); scheduleSave();
+      if(state.selectedDate===key) syncFocusFromData(key, {skip:'pace'});
+    });
+    cell.querySelector('[data-role="memo"]').addEventListener('input', e=>{
+      data.memo = e.target.textContent.trim(); scheduleSave();
+      if(state.selectedDate===key) syncFocusFromData(key, {skip:'memo'});
+    });
+    const typeSel = cell.querySelector('[data-role="type"]');
+    typeSel.addEventListener('click', e=> e.stopPropagation());
+    typeSel.addEventListener('change', e=>{
+      data.type = e.target.value;
+      typeSel.className = 'type-pill ' + (TYPE_CLASS[data.type]||'');
+      scheduleSave();
+      if(state.selectedDate===key) syncFocusFromData(key, {skip:'type'});
+    });
+    cell.querySelector('[data-role="weather"]').addEventListener('click', e=>{
+      e.stopPropagation();
+      const cur = data.weather ? data.weather.text : '';
+      let idx = WEATHER_CYCLE.indexOf(cur);
+      idx = (idx+1) % WEATHER_CYCLE.length;
+      const next = WEATHER_CYCLE[idx];
+      data.weather = next ? {text:next, temp:(data.weather&&data.weather.temp)||'', auto:false} : null;
+      e.target.textContent = next || '－';
+      cell.querySelector('.wtemp').textContent = data.weather ? (data.weather.temp||'') : '';
+      scheduleSave();
+      if(state.selectedDate===key) syncFocusFromData(key, {skip:'weather'});
+    });
+    const doneChk = cell.querySelector('[data-role="done"]');
+    doneChk.addEventListener('click', e=> e.stopPropagation());
+    doneChk.addEventListener('change', e=>{
+      data.done = e.target.checked;
+      cell.classList.toggle('done', data.done);
+      scheduleSave(); updateStats();
+      if(state.selectedDate===key) syncFocusFromData(key, {skip:'done'});
+    });
+  });
+}
+
+function selectDate(key){
+  if(state.selectedDate === key) return;
+  const prevKey = state.selectedDate;
+  state.selectedDate = key;
+  const prevCell = document.querySelector(`.cell[data-date="${prevKey}"]`);
+  if(prevCell) prevCell.classList.remove('selected');
+  const newCell = document.querySelector(`.cell[data-date="${key}"]`);
+  if(newCell) newCell.classList.add('selected');
+  renderFocusCard();
+}
+
+function updateStats(){
+  let total = 0, done = 0;
+  Object.values(state.dayData).forEach(d=>{
+    const n = parseFloat((d.distance||'').replace(/[^0-9.]/g,''));
+    if(!isNaN(n) && n>0){ total += n; }
+    if(d.done) done++;
+  });
+  document.getElementById('totalDist').innerHTML = total.toFixed(1).replace(/\.0$/,'') + '<span>km</span>';
+  document.getElementById('totalDays').innerHTML = done + '<span>日</span>';
+}
+
+/* ---------------- focus card (large selected-day view) ---------------- */
+function renderFocusCard(){
+  const key = state.selectedDate;
+  if(!key) return;
+  const data = ensureDay(key);
+  const [y,m,d] = key.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+
+  document.getElementById('focusBib').textContent = `${m}/${d}`;
+  document.getElementById('focusDow').textContent = WEEKDAY_JA[dt.getDay()] + '曜日';
+
+  const typeEl = document.getElementById('focusType');
+  typeEl.value = data.type || '';
+
+  const menuEl = document.getElementById('focusMenu');
+  const distEl = document.getElementById('focusDistance');
+  const paceEl = document.getElementById('focusPace');
+  const memoEl = document.getElementById('focusMemo');
+  if(document.activeElement !== menuEl) menuEl.textContent = data.menu || '';
+  if(document.activeElement !== distEl) distEl.textContent = data.distance || '';
+  if(document.activeElement !== paceEl) paceEl.textContent = data.pace || '';
+  if(document.activeElement !== memoEl) memoEl.textContent = data.memo || '';
+
+  const cb = document.getElementById('focusDoneCheckbox');
+  cb.checked = !!data.done;
+  document.getElementById('focusDoneWrap').classList.toggle('done', !!data.done);
+  document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
+
+  document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
+  document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
+}
+
+function syncFocusFromData(key, opts={}){
+  if(state.selectedDate !== key) return;
+  const data = ensureDay(key);
+  if(opts.skip !== 'type'){
+    document.getElementById('focusType').value = data.type || '';
+  }
+  if(opts.skip !== 'menu'){
+    const el = document.getElementById('focusMenu');
+    if(document.activeElement !== el) el.textContent = data.menu || '';
+  }
+  if(opts.skip !== 'distance'){
+    const el = document.getElementById('focusDistance');
+    if(document.activeElement !== el) el.textContent = data.distance || '';
+  }
+  if(opts.skip !== 'pace'){
+    const el = document.getElementById('focusPace');
+    if(document.activeElement !== el) el.textContent = data.pace || '';
+  }
+  if(opts.skip !== 'memo'){
+    const el = document.getElementById('focusMemo');
+    if(document.activeElement !== el) el.textContent = data.memo || '';
+  }
+  if(opts.skip !== 'weather'){
+    document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
+    document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
+  }
+  if(opts.skip !== 'done'){
+    document.getElementById('focusDoneCheckbox').checked = !!data.done;
+    document.getElementById('focusDoneWrap').classList.toggle('done', !!data.done);
+    document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
+  }
+}
+
+function syncCellFromData(key){
+  const cell = document.querySelector(`.cell[data-date="${key}"]`);
+  if(!cell) return;
+  const data = ensureDay(key);
+  const typeSel = cell.querySelector('[data-role="type"]');
+  typeSel.value = data.type || '';
+  typeSel.className = 'type-pill ' + (TYPE_CLASS[data.type]||'');
+  const menuEl = cell.querySelector('[data-role="menu"]');
+  const distEl = cell.querySelector('[data-role="distance"]');
+  const paceEl = cell.querySelector('[data-role="pace"]');
+  const memoEl = cell.querySelector('[data-role="memo"]');
+  if(document.activeElement !== menuEl) menuEl.textContent = data.menu || '';
+  if(document.activeElement !== distEl) distEl.textContent = data.distance || '';
+  if(document.activeElement !== paceEl) paceEl.textContent = data.pace || '';
+  if(document.activeElement !== memoEl) memoEl.textContent = data.memo || '';
+  cell.querySelector('[data-role="weather"]').textContent = data.weather ? data.weather.text : '－';
+  cell.querySelector('.wtemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
+  cell.querySelector('[data-role="done"]').checked = !!data.done;
+  cell.classList.toggle('done', !!data.done);
+}
+
+document.getElementById('focusType').addEventListener('change', e=>{
+  const key = state.selectedDate; const data = ensureDay(key);
+  data.type = e.target.value; scheduleSave(); syncCellFromData(key);
+});
+document.getElementById('focusMenu').addEventListener('input', e=>{
+  const key = state.selectedDate; const data = ensureDay(key);
+  data.menu = e.target.textContent.trim(); scheduleSave(); syncCellFromData(key);
+});
+document.getElementById('focusDistance').addEventListener('input', e=>{
+  const key = state.selectedDate; const data = ensureDay(key);
+  data.distance = e.target.textContent.trim(); updateStats(); scheduleSave(); syncCellFromData(key);
+});
+document.getElementById('focusPace').addEventListener('input', e=>{
+  const key = state.selectedDate; const data = ensureDay(key);
+  data.pace = e.target.textContent.trim(); scheduleSave(); syncCellFromData(key);
+});
+document.getElementById('focusMemo').addEventListener('input', e=>{
+  const key = state.selectedDate; const data = ensureDay(key);
+  data.memo = e.target.textContent.trim(); scheduleSave(); syncCellFromData(key);
+});
+document.getElementById('focusDoneCheckbox').addEventListener('change', e=>{
+  const key = state.selectedDate; const data = ensureDay(key);
+  data.done = e.target.checked;
+  document.getElementById('focusDoneWrap').classList.toggle('done', data.done);
+  document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
+  updateStats(); scheduleSave(); syncCellFromData(key);
+});
+
+/* ---------------- weather (Tokyo only) ---------------- */
+async function fetchWeather(){
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${TOKYO.lat}&longitude=${TOKYO.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=7`;
+    const res = await fetch(url);
+    const json = await res.json();
+    const d = json.daily;
+    state.forecast = {};
+    for(let i=0;i<d.time.length;i++){
+      state.forecast[d.time[i]] = {
+        code: d.weathercode[i],
+        tmax: Math.round(d.temperature_2m_max[i]),
+        tmin: Math.round(d.temperature_2m_min[i]),
+        pop: d.precipitation_probability_max[i]
+      };
+    }
+    renderLapboard();
+    applyForecastToCalendar();
+  }catch(err){ /* weather is a bonus feature - fail silently */ }
+}
+
+function renderLapboard(){
+  const board = document.getElementById('lapboard');
+  const now = new Date();
+  const todayKey = fmtDate(now.getFullYear(),now.getMonth(),now.getDate());
+  const keys = Object.keys(state.forecast).sort();
+  board.innerHTML = keys.map(key=>{
+    const f = state.forecast[key];
+    const dt = new Date(key+'T00:00:00');
+    const dow = WEEKDAY_JA[dt.getDay()];
+    const isToday = key===todayKey;
+    return `<div class="lapcard${isToday?' today':''}">
+        <div class="lap-dow">${dow}曜</div>
+        <div class="lap-date">${dt.getMonth()+1}/${dt.getDate()}</div>
+        <div class="lap-emoji">${wmoIcon(f.code)}</div>
+        <div class="lap-temp">${f.tmax}°<span class="lo">/${f.tmin}°</span></div>
+        <div class="lap-pop">☔ ${f.pop}%</div>
+      </div>`;
+  }).join('');
+}
+
+function applyForecastToCalendar(){
+  let touched = false;
+  Object.keys(state.forecast).forEach(key=>{
+    const data = ensureDay(key);
+    if(data.weather && data.weather.auto===false) return;
+    const f = state.forecast[key];
+    const text = wmoIcon(f.code), temp = `${f.tmax}/${f.tmin}°`;
+    if(!data.weather || data.weather.text!==text || data.weather.temp!==temp){
+      data.weather = {text, temp, auto:true};
+      touched = true;
+    }
+  });
+  document.querySelectorAll('.cell[data-date]').forEach(cell=>{
+    const key = cell.dataset.date;
+    const data = state.dayData[key];
+    if(data && data.weather){
+      cell.querySelector('[data-role="weather"]').textContent = data.weather.text;
+      cell.querySelector('.wtemp').textContent = data.weather.temp || '';
+    }
+  });
+  if(state.selectedDate) syncFocusFromData(state.selectedDate);
+  if(touched) scheduleSave();
+}
+
+/* ---------------- navigation ---------------- */
+document.getElementById('prevBtn').addEventListener('click', async ()=>{
+  if(saveTimer) await saveNow();
+  let m = state.month-1, y = state.year;
+  if(m<0){m=11; y--;}
+  loadMonth(y,m);
+});
+document.getElementById('nextBtn').addEventListener('click', async ()=>{
+  if(saveTimer) await saveNow();
+  let m = state.month+1, y = state.year;
+  if(m>11){m=0; y++;}
+  loadMonth(y,m);
+});
+document.getElementById('monthSelect').addEventListener('change', async (e)=>{
+  if(saveTimer) await saveNow();
+  const [y,m] = e.target.value.split('-').map(Number);
+  loadMonth(y, m-1);
+});
+document.getElementById('refreshBtn').addEventListener('click', ()=>{
+  loadMonth(state.year, state.month, {silent:false});
+});
+
+/* ---------------- PDF export ---------------- */
+document.getElementById('pdfBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('pdfBtn');
+  const orig = btn.innerHTML;
+  btn.innerHTML = '<span class="dot"></span>PDF作成中...';
+  btn.disabled = true;
+  try{
+    const target = document.getElementById('exportRoot');
+    const canvas = await html2canvas(target, {scale:2, backgroundColor:'#F3F5F3'});
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('l','pt','a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth - 40;
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 20;
+    pdf.addImage(imgData,'PNG',20,position,imgWidth,imgHeight);
+    heightLeft -= (pageHeight - 40);
+    while(heightLeft > 0){
+      position = heightLeft - imgHeight + 20;
+      pdf.addPage();
+      pdf.addImage(imgData,'PNG',20,position,imgWidth,imgHeight);
+      heightLeft -= (pageHeight - 40);
+    }
+    pdf.save(`running-menu-${monthKey(state.year,state.month)}.pdf`);
+  }catch(err){
+    alert('PDFの作成に失敗しました: ' + err.message);
+  }finally{
+    btn.innerHTML = orig;
+    btn.disabled = false;
+  }
+});
+
+/* ---------------- background sync ---------------- */
+pollTimer = setInterval(()=>{
+  if(isEditingNow() || saveTimer) return;
+  loadMonth(state.year, state.month, {silent:true});
+}, 20000);
+
+/* ---------------- init ---------------- */
+renderWeekrow();
+loadMonth(state.year, state.month);
+fetchWeather();
+</script>
+</body>
+</html>
