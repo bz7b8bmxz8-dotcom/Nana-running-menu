@@ -258,16 +258,39 @@
   .stopwatch-btn:hover{background:var(--track-blue-deep);}
   .stopwatch-btn .dot{width:9px;height:9px;border-radius:50%;background:var(--lane-yellow);}
 
+  .dow-label{display:none;}
+  .dp-row{display:contents;}
+
   @media(max-width:700px){
     .title{font-size:38px;}
-    .cell{min-height:185px;padding:7px 5px 8px;}
-    .bib{font-size:15px;padding:1px 5px;}
     .lapboard{flex-wrap:wrap;}
     .lapcard{flex:1 1 25%;border-bottom:1px solid rgba(255,255,255,.16);}
     .focus-card{flex-wrap:wrap;}
     .focus-left{border-right:none;border-bottom:4px dashed rgba(255,255,255,.25);width:100%;}
     .focus-main,.focus-mid,.focus-right{border-right:none;border-bottom:1px solid var(--line);width:100%;}
     .focus-weather{border-left:none;border-top:1px solid var(--line);width:100%;}
+
+    /* switch the month grid to a one-row-per-day list for comfortable tapping */
+    .weekrow{display:none;}
+    .grid{display:flex;flex-direction:column;gap:10px;}
+    .cell.pad{display:none;}
+    .cell{
+      min-height:auto;padding:12px 14px;border-radius:12px;
+    }
+    .cell-top{margin-bottom:8px;}
+    .chk input{width:20px;height:20px;}
+    .bib{font-size:17px;padding:2px 9px;}
+    .dow-label{display:inline;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink-soft);margin-left:6px;}
+    .cell.sun .dow-label{color:var(--route-red);}
+    .cell.sat .dow-label{color:var(--track-blue);}
+    .wbadge{font-size:18px;padding:4px 8px;}
+    .wtemp{font-size:11px;}
+    .type-pill{font-size:13px;padding:7px 6px;margin-bottom:4px;}
+    .field{font-size:15px;padding:6px 2px;min-height:22px;}
+    .field.menu{font-size:15px;}
+    .dp-row{display:flex;gap:14px;margin-bottom:2px;}
+    .dp-row .field{flex:1;}
+    .memo{font-size:13.5px;margin-top:6px;}
   }
 </style>
 </head>
@@ -291,12 +314,17 @@
     </div>
   </div>
 
+  <div class="banner">
+    <span>⚠️ このメニュー表は共有データです。このリンクを知っている人は誰でも閲覧・編集できます。友人にはこのページのリンクを共有してください。</span>
+    <span class="status" id="statusText"></span>
+  </div>
+
   <div id="exportRoot">
     <div class="masthead">
       <div class="eyebrow">NANA RUNNING CREW</div>
       <div class="title" id="titleText">RUNNING MENU</div>
       <div class="lanes"></div>
-      <div class="subline">天気: <b>東京</b> の週間予報</div>
+      <div class="subline">天気: <b>東京</b> の週間予報 ・ 日付をクリックすると下に大きく表示されます</div>
     </div>
 
     <div class="lapboard" id="lapboard"></div>
@@ -591,6 +619,7 @@ function renderCalendar(){
         <div class="cell-top-left">
           <label class="chk"><input type="checkbox" data-role="done" ${data.done?'checked':''}></label>
           <div class="bib">${dayNum}</div>
+          <span class="dow-label">${WEEKDAY_JA[dow]}曜</span>
         </div>
         <div style="text-align:right;">
           <div class="wbadge" data-role="weather">${wtext || '－'}</div>
@@ -599,8 +628,10 @@ function renderCalendar(){
       </div>
       <select class="type-pill ${TYPE_CLASS[data.type]||''}" data-role="type">${typeOptionsHtml(data.type)}</select>
       <div class="field menu" contenteditable="true" data-placeholder="メニュー" data-role="menu">${data.menu||''}</div>
-      <div class="field dist" contenteditable="true" data-placeholder="0 km" data-role="distance">${data.distance||''}</div>
-      <div class="field pace" contenteditable="true" data-placeholder="ペース" data-role="pace">${data.pace||''}</div>
+      <div class="dp-row">
+        <div class="field dist" contenteditable="true" data-placeholder="0 km" data-role="distance">${data.distance||''}</div>
+        <div class="field pace" contenteditable="true" data-placeholder="ペース" data-role="pace">${data.pace||''}</div>
+      </div>
       <div class="memo" contenteditable="true" data-placeholder="メモ" data-role="memo">${data.memo||''}</div>
     `;
     grid.appendChild(cell);
@@ -895,7 +926,9 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
   btn.disabled = true;
   try{
     const target = document.getElementById('exportRoot');
-    const canvas = await html2canvas(target, {scale:2, backgroundColor:'#F3F5F3'});
+    // force desktop-width layout during capture so the PDF always shows the
+    // full 7-column grid, even when exporting from a phone's stacked list view
+    const canvas = await html2canvas(target, {scale:2, backgroundColor:'#F3F5F3', windowWidth:1200, width:target.scrollWidth});
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('l','pt','a4');
