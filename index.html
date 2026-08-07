@@ -8,6 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --paper:#F3F5F3;
@@ -57,7 +59,15 @@
     background:#FFF7DD;border:1px solid #EFDD9A;border-radius:8px;
     padding:9px 14px;font-size:12px;color:#6B5B12;margin-bottom:18px;flex-wrap:wrap;
   }
+  .banner.error{background:#FDECEC;border-color:#F3B4B0;color:#8A241D;}
   .status{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+
+  .config-block{
+    background:#FDECEC;border:1.5px solid #F3B4B0;border-radius:10px;
+    padding:20px 22px;margin-bottom:20px;color:#8A241D;font-size:13px;line-height:1.7;
+  }
+  .config-block b{display:block;font-size:15px;margin-bottom:6px;}
+  .config-block code{background:#fff;padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;}
 
   #exportRoot{background:var(--paper);position:relative;}
   .loading-overlay{
@@ -264,18 +274,22 @@
 <body>
 <div class="wrap">
 
+  <div id="configError" class="config-block" style="display:none;">
+    <b>⚠️ Firebaseの設定が完了していません</b>
+    このHTMLファイル内の <code>firebaseConfig</code> に、Firebaseプロジェクトの設定値(apiKey / databaseURL など)を貼り付けてから保存・公開してください。設定が終わるまでは、入力しても内容は保存されません。
+  </div>
+
   <div class="toolbar">
     <div class="nav-group">
       <button id="prevBtn">◀ 前月</button>
       <div class="month-label" id="monthLabel">-</div>
       <button id="nextBtn">次月 ▶</button>
     </div>
-
     <div class="month-group">
-    <select id="monthSelect">
-  </select>
-  <button id="refreshBtn" class="icon" title="最新の内容を取得">🔄 更新</button>
-</div>
+      <select id="monthSelect"><option>読み込み中...</option></select>
+      <button id="refreshBtn" class="icon" title="最新の内容を取得">🔄 更新</button>
+    </div>
+  </div>
 
   <div id="exportRoot">
     <div class="masthead">
@@ -358,6 +372,37 @@
 </div>
 
 <script>
+/* ======================================================================
+   ▼▼▼ ここにFirebaseプロジェクトの設定値を貼り付けてください ▼▼▼
+   Firebaseコンソール → プロジェクトの概要 → </> (ウェブアプリ) → 設定
+   で表示される firebaseConfig の中身をそのままコピーしてOKです。
+   ====================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyBrUi42ZpTNEfQxzvHX_19IeFYbcr1SZGI",
+  authDomain: "runmenu-1abfd.firebaseapp.com",
+  databaseURL: "https://runmenu-1abfd-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  projectId: "runmenu-1abfd",
+  storageBucket: "runmenu-1abfd.firebasestorage.app",
+  messagingSenderId: "814429943884",
+  appId: "1:814429943884:web:d5b1bf201b4f91b27a5ce9"
+};
+/* ▲▲▲ ここまで ▲▲▲ ================================================= */
+
+const CONFIG_OK = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('ここに')
+                && firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes('ここに');
+
+let db = null;
+if(CONFIG_OK){
+  try{
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+  }catch(e){
+    console.error('Firebase init error', e);
+  }
+}else{
+  document.getElementById('configError').style.display = 'block';
+}
+
 const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
 const WEATHER_CYCLE = ['','☀️','⛅','☁️','🌧️','❄️'];
 const TOKYO = {lat:35.6895, lon:139.6917};
@@ -382,11 +427,9 @@ let state = {
   selectedDate: null
 };
 let saveTimer = null;
-let pollTimer = null;
-let loadToken = 0;
+let monthRef = null;
 
 function monthKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
-function storageKey(y,m){ return `month:${monthKey(y,m)}`; }
 function fmtDate(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
 function ensureDay(key){
   if(!state.dayData[key]) state.dayData[key] = {type:'',menu:'',distance:'',pace:'',memo:'',weather:null,done:false};
@@ -394,43 +437,50 @@ function ensureDay(key){
 }
 function setStatus(text){
   const el = document.getElementById('statusText');
-  if (el) {
-    el.textContent = text;
-  }
-}function isEditingNow(){
+  if(el) el.textContent = text;
+}
+function isEditingNow(){
   const a = document.activeElement;
   return a && a.isContentEditable;
 }
 
-/* ---------------- storage: load / save ---------------- */
-async function loadMonth(year, month, {silent=false}={}){
-  const myToken = ++loadToken;
-  if(!silent) showLoadingOverlay(true);
-  let days = {};
-  let existed = true;
-  try{
-    const res = await window.storage.get(storageKey(year,month), true);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
-      days = parsed.days || {};
-    }
-  }catch(e){
-    existed = false;
-  }
-  if(myToken !== loadToken) return;
-  state.year = year; state.month = month; state.dayData = days;
+/* ---------------- Firebase: load / save (realtime) ---------------- */
+function loadMonth(year, month){
+  if(!db){ setStatus('⚠ Firebase未設定'); return; }
+  showLoadingOverlay(true);
+  if(monthRef) monthRef.off();
 
+  state.year = year; state.month = month;
   const now = new Date();
   const todayKey = fmtDate(now.getFullYear(),now.getMonth(),now.getDate());
   state.selectedDate = (now.getFullYear()===year && now.getMonth()===month) ? todayKey : fmtDate(year,month,1);
 
-  renderCalendar();
-  renderFocusCard();
-  if(!silent) showLoadingOverlay(false);
-  if(!existed){
-    saveNow();
-  }
-  refreshMonthSelect();
+  let firstCallback = true;
+  monthRef = db.ref('months/'+monthKey(year,month));
+  monthRef.on('value', snapshot=>{
+    const val = snapshot.val();
+    const days = (val && val.days) ? val.days : {};
+
+    if(firstCallback){
+      firstCallback = false;
+      state.dayData = days;
+      renderCalendar();
+      renderFocusCard();
+      showLoadingOverlay(false);
+      if(!val) saveNow(); // register this new month so it shows up in the list
+      refreshMonthSelect();
+      return;
+    }
+    // realtime update from someone else (or our own write echoed back)
+    if(isEditingNow()) return;
+    state.dayData = days;
+    renderCalendar();
+    renderFocusCard();
+  }, err=>{
+    showLoadingOverlay(false);
+    setStatus('⚠ 接続エラー');
+    console.error(err);
+  });
 }
 
 function scheduleSave(){
@@ -442,23 +492,26 @@ function scheduleSave(){
 async function saveNow(){
   clearTimeout(saveTimer);
   saveTimer = null;
+  if(!db || !monthRef){ setStatus('⚠ Firebase未設定'); return; }
   setStatus('保存中…');
   try{
-    await window.storage.set(storageKey(state.year, state.month), JSON.stringify({days: state.dayData, updatedAt: Date.now()}), true);
+    await monthRef.set({days: state.dayData, updatedAt: Date.now()});
     const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
     setStatus('✓ 保存済み ' + t);
     refreshMonthSelect();
   }catch(e){
     setStatus('⚠ 保存に失敗しました');
+    console.error(e);
   }
 }
 
 async function refreshMonthSelect(){
+  if(!db) return;
   const sel = document.getElementById('monthSelect');
   try{
-    const res = await window.storage.list('month:', true);
-    const keys = (res && res.keys) ? res.keys : [];
-    const months = keys.map(k=>k.replace('month:','')).sort();
+    const snap = await db.ref('months').once('value');
+    const val = snap.val() || {};
+    const months = Object.keys(val).sort();
     const cur = monthKey(state.year, state.month);
     if(!months.includes(cur)) months.push(cur);
     months.sort();
@@ -645,8 +698,7 @@ function renderFocusCard(){
   document.getElementById('focusBib').textContent = `${m}/${d}`;
   document.getElementById('focusDow').textContent = WEEKDAY_JA[dt.getDay()] + '曜日';
 
-  const typeEl = document.getElementById('focusType');
-  typeEl.value = data.type || '';
+  document.getElementById('focusType').value = data.type || '';
 
   const menuEl = document.getElementById('focusMenu');
   const distEl = document.getElementById('focusDistance');
@@ -832,7 +884,7 @@ document.getElementById('monthSelect').addEventListener('change', async (e)=>{
   loadMonth(y, m-1);
 });
 document.getElementById('refreshBtn').addEventListener('click', ()=>{
-  loadMonth(state.year, state.month, {silent:false});
+  loadMonth(state.year, state.month);
 });
 
 /* ---------------- PDF export ---------------- */
@@ -870,15 +922,13 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
   }
 });
 
-/* ---------------- background sync ---------------- */
-pollTimer = setInterval(()=>{
-  if(isEditingNow() || saveTimer) return;
-  loadMonth(state.year, state.month, {silent:true});
-}, 20000);
-
 /* ---------------- init ---------------- */
 renderWeekrow();
-loadMonth(state.year, state.month);
+if(db){
+  loadMonth(state.year, state.month);
+}else{
+  renderCalendar(); // render an empty, non-persisting calendar so the page isn't blank
+}
 fetchWeather();
 </script>
 </body>
