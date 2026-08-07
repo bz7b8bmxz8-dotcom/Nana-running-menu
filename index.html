@@ -3,7 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ななさんランニングメニュー表</title>
+<title>ななさん夢へのカレンダー</title>
+
+<!-- ホーム画面追加用のアイコン設定 -->
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NANA RUN">
+<meta name="theme-color" content="#1B2430">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -315,14 +325,14 @@
   </div>
 
   <div class="banner">
-    <span>⚠️ このメニュー表は共有データなので保存表示を確認してください</span>
+    <span>⚠️ このメニュー表は共有データです。保存済み表示を確認してください</span>
     <span class="status" id="statusText"></span>
   </div>
 
   <div id="exportRoot">
     <div class="masthead">
-      <div class="eyebrow">Go for it</div>
-      <div class="title" id="titleText">NANA RUNNING MENU</div>
+      <div class="eyebrow">NANA RUNNING CREW</div>
+      <div class="title" id="titleText">RUNNING MENU</div>
       <div class="lanes"></div>
       <div class="subline">天気: <b>東京</b> の週間予報</div>
     </div>
@@ -341,7 +351,7 @@
       </div>
       <div class="focus-main">
         <div>
-          <div class="focus-field-label">練習メニュー</div>
+          <div class="focus-field-label">練習内容</div>
           <select class="type-pill focus-type-select" id="focusType">
             <option value="">－ 未選択</option>
             <option value="jog">jog</option>
@@ -395,7 +405,7 @@
   </div>
 
   <div class="exportbar">
-    <button class="stopwatch-btn" id="pdfBtn"><span class="dot"></span>今月のメニュー表をPDFでダウンロード</button>
+    <button class="stopwatch-btn" id="pdfBtn"><span class="dot"></span>この月のメニューをPDFでダウンロード</button>
   </div>
 </div>
 
@@ -928,7 +938,7 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
     const target = document.getElementById('exportRoot');
     // force desktop-width layout during capture so the PDF always shows the
     // full 7-column grid, even when exporting from a phone's stacked list view
-    const canvas = await html2canvas(target, {scale:2, backgroundColor:'#F3F5F3', windowWidth:1200, width:target.scrollWidth});
+    const canvas = await html2canvas(target, {scale:2, backgroundColor:'#F3F5F3', windowWidth:1200});
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     // build a single page sized to exactly fit the captured content
