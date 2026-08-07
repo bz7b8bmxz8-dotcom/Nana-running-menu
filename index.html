@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ランニングメニュー表</title>
+<title>ななさんランニングメニュー表</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -315,16 +315,16 @@
   </div>
 
   <div class="banner">
-    <span>⚠️ このメニュー表は共有データです。このリンクを知っている人は誰でも閲覧・編集できます。友人にはこのページのリンクを共有してください。</span>
+    <span>⚠️ このメニュー表は共有データなので保存表示を確認してください</span>
     <span class="status" id="statusText"></span>
   </div>
 
   <div id="exportRoot">
     <div class="masthead">
-      <div class="eyebrow">NANA RUNNING CREW</div>
-      <div class="title" id="titleText">RUNNING MENU</div>
+      <div class="eyebrow">Go for it</div>
+      <div class="title" id="titleText">NANA RUNNING MENU</div>
       <div class="lanes"></div>
-      <div class="subline">天気: <b>東京</b> の週間予報 ・ 日付をクリックすると下に大きく表示されます</div>
+      <div class="subline">天気: <b>東京</b> の週間予報</div>
     </div>
 
     <div class="lapboard" id="lapboard"></div>
@@ -362,7 +362,7 @@
           <div class="focus-field dist" contenteditable="true" data-placeholder="0 km" id="focusDistance"></div>
         </div>
         <div>
-          <div class="focus-field-label">目標ペース</div>
+          <div class="focus-field-label">設定ペース</div>
           <div class="focus-field pace" contenteditable="true" data-placeholder="例: 5'30&quot;" id="focusPace"></div>
         </div>
       </div>
@@ -931,21 +931,20 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
     const canvas = await html2canvas(target, {scale:2, backgroundColor:'#F3F5F3', windowWidth:1200, width:target.scrollWidth});
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('l','pt','a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth - 40;
-    const imgHeight = canvas.height * imgWidth / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 20;
-    pdf.addImage(imgData,'PNG',20,position,imgWidth,imgHeight);
-    heightLeft -= (pageHeight - 40);
-    while(heightLeft > 0){
-      position = heightLeft - imgHeight + 20;
-      pdf.addPage();
-      pdf.addImage(imgData,'PNG',20,position,imgWidth,imgHeight);
-      heightLeft -= (pageHeight - 40);
-    }
+    // build a single page sized to exactly fit the captured content
+    // (canvas is rendered at scale:2 and ~96dpi, so convert px -> pt at 72/96 = 0.75, /2 for the scale)
+    const margin = 24; // pt
+    const pxToPt = 0.75 / 2;
+    const contentWidthPt = canvas.width * pxToPt;
+    const contentHeightPt = canvas.height * pxToPt;
+    const pageWidthPt = contentWidthPt + margin*2;
+    const pageHeightPt = contentHeightPt + margin*2;
+    const pdf = new jsPDF({
+      orientation: pageWidthPt > pageHeightPt ? 'l' : 'p',
+      unit: 'pt',
+      format: [pageWidthPt, pageHeightPt]
+    });
+    pdf.addImage(imgData, 'PNG', margin, margin, contentWidthPt, contentHeightPt);
     pdf.save(`running-menu-${monthKey(state.year,state.month)}.pdf`);
   }catch(err){
     alert('PDFの作成に失敗しました: ' + err.message);
