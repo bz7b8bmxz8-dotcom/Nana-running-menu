@@ -386,7 +386,7 @@
       </div>
       <div class="focus-body">
         <div class="sessions-list" id="focusSessions"></div>
-        <button class="add-session-btn" id="addSessionBtn">＋ 練習を追加(合宿の3部練など)</button>
+        <button class="add-session-btn" id="addSessionBtn">＋ 練習を追加</button>
         <div class="focus-memo-block">
           <div class="focus-memo-label">メモ</div>
           <div class="focus-memo" contenteditable="true" data-placeholder="体調や気づき、共有メモなど…" id="focusMemo"></div>
@@ -512,7 +512,16 @@ function setStatus(text){
 }
 function isEditingNow(){
   const a = document.activeElement;
-  return a && a.isContentEditable;
+  if(!a) return false;
+
+  return (
+    a.isContentEditable ||
+    a.tagName === 'SELECT' ||
+    a.tagName === 'INPUT' ||
+    a.tagName === 'TEXTAREA' ||
+    a.classList.contains('add-session-btn') ||
+    a.classList.contains('session-remove')
+  );
 }
 
 /* ---------------- Firebase: load / save (per-day, realtime) ---------------- */
@@ -894,14 +903,20 @@ function renderFocusSessions(){
   });
 }
 
-document.getElementById('addSessionBtn').addEventListener('click', ()=>{
+document.getElementById('addSessionBtn').addEventListener('click', async ()=>{
   const key = state.selectedDate;
   if(!key) return;
+
   const data = ensureDay(key);
+
   data.sessions.push(blankSession());
-  scheduleSave(key);
+
+  // 画面を先に更新
   renderFocusSessions();
   syncCellFromData(key);
+
+  // すぐ保存
+  await saveDay(key);
 });
 
 document.getElementById('focusDoneCheckbox').addEventListener('change', e=>{
