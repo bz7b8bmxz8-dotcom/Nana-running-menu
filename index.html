@@ -471,6 +471,7 @@ let state = {
   selectedDate: null
 };
 let saveTimers = {};   // dateKey -> timeoutId  (each day saves independently)
+let localWritePending = {}; // dateKey -> true while our local change must win over realtime echo
 let daysRef = null;    // firebase ref to months/{monthKey}/days
 
 function monthKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
@@ -510,27 +511,10 @@ function setStatus(text){
   const el = document.getElementById('statusText');
   if(el) el.textContent = text;
 }
-let pendingLocalChanges = {};
-
 function isEditingNow(){
   const a = document.activeElement;
-
-  if(a && (
-    a.isContentEditable ||
-    a.tagName === 'SELECT' ||
-    a.tagName === 'INPUT' ||
-    a.tagName === 'TEXTAREA'
-  )){
-    return true;
-  }
-
-  // 自分が変更したデータをFirebaseへ保存中なら、
-  // 古いRealtime Databaseの値で画面を上書きしない
-  if(state.selectedDate && pendingLocalChanges[state.selectedDate]){
-    return true;
-  }
-
-  return false;
+  if(a && (a.isContentEditable || a.tagName === 'SELECT' || a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return true;
+  return !!(state.selectedDate && localWritePending[state.selectedDate]);
 }
 
 /* ---------------- Firebase: load / save (per-day, realtime) ---------------- */
@@ -564,7 +548,18 @@ function loadMonth(year, month){
       refreshMonthSelect();
       return;
     }
-    // realtime update from someone else (or our own write echoed back)
+    // Ignore the realtime echo of a local edit. The local state has already
+    // been updated and rendered, so replacing it with the previous snapshot
+    // would make newly added/removed sessions briefly appear and disappear.
+    const pendingKeys = Object.keys(localWritePending).filter(k=>localWritePending[k]);
+    if(pendingKeys.length){
+      pendingKeys.forEach(k=>{
+        if(days[k] && JSON.stringify(days[k]) === JSON.stringify(state.dayData[k])){
+          delete localWritePending[k];
+        }
+      });
+      if(pendingKeys.some(k=>localWritePending[k])) return;
+    }
     if(isEditingNow()) return;
     state.dayData = days;
     renderCalendar();
@@ -578,47 +573,32 @@ function loadMonth(year, month){
 
 function scheduleSave(dateKey){
   setStatus('入力中…');
-
-  // Firebaseから古いデータが返ってきても、
-  // 今こちらで変更した内容を優先する
-  pendingLocalChanges[dateKey] = true;
-
+  localWritePending[dateKey] = true;
   clearTimeout(saveTimers[dateKey]);
-
-  saveTimers[dateKey] = setTimeout(()=>{
-    saveDay(dateKey);
-  }, 900);
+  saveTimers[dateKey] = setTimeout(()=>saveDay(dateKey), 900);
 }
 
 async function saveDay(dateKey){
   clearTimeout(saveTimers[dateKey]);
   delete saveTimers[dateKey];
-
   if(!db || !daysRef){
-    pendingLocalChanges[dateKey] = false;
+    delete localWritePending[dateKey];
     setStatus('⚠ Firebase未設定');
     return;
   }
-
+  localWritePending[dateKey] = true;
   setStatus('保存中…');
-
   try{
+    // Write only this day. Keep the local version until Firebase has echoed
+    // the same value back, so add/remove operations cannot be rolled back.
     await daysRef.child(dateKey).set(state.dayData[dateKey]);
-
-    const t = new Date().toLocaleTimeString('ja-JP',{
-      hour:'2-digit',
-      minute:'2-digit'
-    });
-
+    const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
     setStatus('✓ 保存済み ' + t);
     refreshMonthSelect();
-
   }catch(e){
+    delete localWritePending[dateKey];
     setStatus('⚠ 保存に失敗しました');
     console.error(e);
-
-  }finally{
-    pendingLocalChanges[dateKey] = false;
   }
 }
 
@@ -923,51 +903,35 @@ function renderFocusSessions(){
     });
   });
   wrap.querySelectorAll('.session-remove').forEach(el=>{
-  el.addEventListener('click', async e=>{
-    e.preventDefault();
-    e.stopPropagation();
+    el.addEventListener('click', async e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const i = Number(e.currentTarget.dataset.idx);
+      if(!Number.isInteger(i) || i < 0 || i >= data.sessions.length) return;
+      if(data.sessions.length <= 1) return;
 
-    const i = Number(e.currentTarget.dataset.idx);
-
-    if(Number.isNaN(i)) return;
-    if(i < 0 || i >= data.sessions.length) return;
-
-    // 1本だけの状態にはしない
-    if(data.sessions.length <= 1) return;
-
-    pendingLocalChanges[key] = true;
-
-    // データから削除
-    data.sessions.splice(i, 1);
-
-    // 先に画面を更新
-    renderFocusSessions();
-    syncCellFromData(key);
-    updateStats();
-
-    // 即時保存
-    await saveDay(key);
+      localWritePending[key] = true;
+      data.sessions.splice(i,1);
+      renderFocusSessions();
+      syncCellFromData(key);
+      updateStats();
+      await saveDay(key);
+    });
   });
-});
-document.getElementById('addSessionBtn').addEventListener('click', async (e)=>{
+}
+
+document.getElementById('addSessionBtn').addEventListener('click', async e=>{
   e.preventDefault();
   e.stopPropagation();
-
   const key = state.selectedDate;
   if(!key) return;
-
   const data = ensureDay(key);
 
-  pendingLocalChanges[key] = true;
-
+  localWritePending[key] = true;
   data.sessions.push(blankSession());
-
-  // 先に画面を更新
   renderFocusSessions();
   syncCellFromData(key);
   updateStats();
-
-  // 追加は即時保存
   await saveDay(key);
 });
 
