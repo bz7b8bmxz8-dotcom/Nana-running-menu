@@ -892,16 +892,27 @@ function renderFocusSessions(){
     });
   });
   wrap.querySelectorAll('.session-remove').forEach(el=>{
-    el.addEventListener('click', e=>{
-      const i = +e.target.dataset.idx;
-      data.sessions.splice(i,1);
-      updateStats();
-      scheduleSave(key);
-      renderFocusSessions();
-      syncCellFromData(key);
-    });
+  el.addEventListener('click', async e=>{
+    e.stopPropagation();
+
+    const i = Number(e.currentTarget.dataset.idx);
+    if(Number.isNaN(i)) return;
+
+    // 1本しかない場合は削除しない
+    if(data.sessions.length <= 1) return;
+
+    // データから削除
+    data.sessions.splice(i, 1);
+
+    // 画面を先に更新
+    renderFocusSessions();
+    syncCellFromData(key);
+    updateStats();
+
+    // Firebaseへ即時保存
+    await saveDay(key);
   });
-}
+});
 
 document.getElementById('addSessionBtn').addEventListener('click', async ()=>{
   const key = state.selectedDate;
