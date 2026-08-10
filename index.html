@@ -822,7 +822,7 @@ function renderFocusCard(){
 
   const now = new Date();
   const todayKey = fmtDate(now.getFullYear(), now.getMonth(), now.getDate());
-  document.getElementById('focusEyebrow').textContent = (key === todayKey) ? "TODAY'S MENU" : "選択した日のメニュー";
+  document.getElementById('focusEyebrow').textContent = (key === todayKey) ? "TODAY'S MENU" : "SELECT DAY";
 
   const cb = document.getElementById('focusDoneCheckbox');
   cb.checked = !!data.done;
