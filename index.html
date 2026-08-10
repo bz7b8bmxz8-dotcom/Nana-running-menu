@@ -510,18 +510,27 @@ function setStatus(text){
   const el = document.getElementById('statusText');
   if(el) el.textContent = text;
 }
+let pendingLocalChanges = {};
+
 function isEditingNow(){
   const a = document.activeElement;
-  if(!a) return false;
 
-  return (
+  if(a && (
     a.isContentEditable ||
     a.tagName === 'SELECT' ||
     a.tagName === 'INPUT' ||
-    a.tagName === 'TEXTAREA' ||
-    a.classList.contains('add-session-btn') ||
-    a.classList.contains('session-remove')
-  );
+    a.tagName === 'TEXTAREA'
+  )){
+    return true;
+  }
+
+  // 自分が変更したデータをFirebaseへ保存中なら、
+  // 古いRealtime Databaseの値で画面を上書きしない
+  if(state.selectedDate && pendingLocalChanges[state.selectedDate]){
+    return true;
+  }
+
+  return false;
 }
 
 /* ---------------- Firebase: load / save (per-day, realtime) ---------------- */
@@ -569,25 +578,47 @@ function loadMonth(year, month){
 
 function scheduleSave(dateKey){
   setStatus('入力中…');
+
+  // Firebaseから古いデータが返ってきても、
+  // 今こちらで変更した内容を優先する
+  pendingLocalChanges[dateKey] = true;
+
   clearTimeout(saveTimers[dateKey]);
-  saveTimers[dateKey] = setTimeout(()=>saveDay(dateKey), 900);
+
+  saveTimers[dateKey] = setTimeout(()=>{
+    saveDay(dateKey);
+  }, 900);
 }
 
 async function saveDay(dateKey){
   clearTimeout(saveTimers[dateKey]);
   delete saveTimers[dateKey];
-  if(!db || !daysRef){ setStatus('⚠ Firebase未設定'); return; }
+
+  if(!db || !daysRef){
+    pendingLocalChanges[dateKey] = false;
+    setStatus('⚠ Firebase未設定');
+    return;
+  }
+
   setStatus('保存中…');
+
   try{
-    // only this single day's node is written - edits to other days
-    // (from another device/tab) are never touched or overwritten
     await daysRef.child(dateKey).set(state.dayData[dateKey]);
-    const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+
+    const t = new Date().toLocaleTimeString('ja-JP',{
+      hour:'2-digit',
+      minute:'2-digit'
+    });
+
     setStatus('✓ 保存済み ' + t);
     refreshMonthSelect();
+
   }catch(e){
     setStatus('⚠ 保存に失敗しました');
     console.error(e);
+
+  }finally{
+    pendingLocalChanges[dateKey] = false;
   }
 }
 
@@ -893,40 +924,50 @@ function renderFocusSessions(){
   });
   wrap.querySelectorAll('.session-remove').forEach(el=>{
   el.addEventListener('click', async e=>{
+    e.preventDefault();
     e.stopPropagation();
 
     const i = Number(e.currentTarget.dataset.idx);
-    if(Number.isNaN(i)) return;
 
-    // 1本しかない場合は削除しない
+    if(Number.isNaN(i)) return;
+    if(i < 0 || i >= data.sessions.length) return;
+
+    // 1本だけの状態にはしない
     if(data.sessions.length <= 1) return;
+
+    pendingLocalChanges[key] = true;
 
     // データから削除
     data.sessions.splice(i, 1);
 
-    // 画面を先に更新
+    // 先に画面を更新
     renderFocusSessions();
     syncCellFromData(key);
     updateStats();
 
-    // Firebaseへ即時保存
+    // 即時保存
     await saveDay(key);
   });
 });
+document.getElementById('addSessionBtn').addEventListener('click', async (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
 
-document.getElementById('addSessionBtn').addEventListener('click', async ()=>{
   const key = state.selectedDate;
   if(!key) return;
 
   const data = ensureDay(key);
 
+  pendingLocalChanges[key] = true;
+
   data.sessions.push(blankSession());
 
-  // 画面を先に更新
+  // 先に画面を更新
   renderFocusSessions();
   syncCellFromData(key);
+  updateStats();
 
-  // すぐ保存
+  // 追加は即時保存
   await saveDay(key);
 });
 
