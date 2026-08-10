@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ななさん夢へのカレンダー</title>
+<title>ななさん夢へのランニングメニュー表</title>
 
 <!-- ホーム画面追加用のアイコン設定 -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -69,7 +69,6 @@
     background:#FFF7DD;border:1px solid #EFDD9A;border-radius:8px;
     padding:9px 14px;font-size:12px;color:#6B5B12;margin-bottom:18px;flex-wrap:wrap;
   }
-  .banner.error{background:#FDECEC;border-color:#F3B4B0;color:#8A241D;}
   .status{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
 
   .config-block{
@@ -137,62 +136,87 @@
   .type-pill.t-junpoint{background:#FEF6DA;color:#8A6D06;border-color:var(--lane-yellow);}
   .type-pill.t-off{background:var(--line-soft);color:var(--ink-soft);border-color:var(--line);}
   .type-pill.t-race{background:var(--track-blue);color:#fff;border-color:var(--track-blue);}
-  .focus-type-select{font-size:14px;padding:8px 10px;border-radius:8px;font-weight:700;}
+
+  /* ---- multi-session badge on the calendar cell ---- */
+  .multi-badge{
+    font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fff;
+    background:var(--route-red);border-radius:8px;padding:1px 6px;margin-left:4px;
+    white-space:nowrap;
+  }
 
   /* ---- focus card: large view of the selected day ---- */
   .focus-card{
-    display:flex;gap:0;background:var(--panel);border:1px solid var(--line);
-    border-radius:12px;overflow:hidden;margin-bottom:24px;
-    box-shadow:0 6px 18px rgba(27,36,48,.06);
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin-bottom:24px;box-shadow:0 6px 18px rgba(27,36,48,.06);
   }
-  .focus-left{
-    background:var(--ink);color:#fff;padding:18px 20px;min-width:150px;
-    display:flex;flex-direction:column;justify-content:center;gap:10px;
-    border-right:4px dashed rgba(255,255,255,.25);position:relative;
+  .focus-header{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    background:var(--ink);color:#fff;padding:14px 20px;flex-wrap:wrap;
   }
-  .focus-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:2px;color:var(--lane-yellow);text-transform:uppercase;}
-  .focus-bib{font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:.9;}
-  .focus-dow{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:rgba(255,255,255,.75);}
+  .focus-header-left{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .focus-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--lane-yellow);text-transform:uppercase;}
+  .focus-bib{font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1;}
+  .focus-dow-block{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
+  .focus-dow{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,.7);}
   .focus-done{
-    display:flex;align-items:center;gap:8px;margin-top:6px;cursor:pointer;
-    font-family:'Inter',sans-serif;font-size:12.5px;font-weight:700;
+    display:flex;align-items:center;gap:7px;cursor:pointer;
+    font-family:'Inter',sans-serif;font-size:12px;font-weight:700;
   }
-  .focus-done input{width:18px;height:18px;accent-color:var(--lane-yellow);cursor:pointer;}
+  .focus-done input{width:17px;height:17px;accent-color:var(--lane-yellow);cursor:pointer;}
   .focus-done.done span{color:var(--lane-yellow);}
-  .focus-main{
-    padding:16px 22px;display:flex;flex-direction:column;justify-content:center;
-    gap:10px;border-right:1px solid var(--line);flex:1.3;min-width:220px;
+  .focus-header-right{display:flex;align-items:center;gap:8px;}
+  .focus-w-emoji{font-size:24px;line-height:1;}
+  .focus-w-temp{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.7);}
+
+  .focus-body{padding:18px 20px;}
+  .sessions-list{display:flex;flex-direction:column;gap:10px;}
+  .session-row{
+    display:flex;gap:12px;align-items:flex-start;background:var(--paper);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;flex-wrap:wrap;
   }
-  .focus-mid{
-    padding:16px 22px;display:flex;flex-direction:column;justify-content:center;
-    gap:12px;border-right:1px solid var(--line);min-width:170px;
+  .session-num{
+    font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--ink-soft);
+    min-width:42px;padding-top:20px;
   }
-  .focus-right{flex:1;padding:16px 22px;display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:190px;}
-  .focus-weather{
-    padding:16px 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:4px;background:var(--paper);min-width:100px;border-left:1px solid var(--line);
+  .session-fields{flex:1;display:flex;gap:14px;flex-wrap:wrap;min-width:0;}
+  .session-field-group{display:flex;flex-direction:column;gap:3px;}
+  .session-field-group.menu{flex:2;min-width:160px;}
+  .session-field-group.type{width:112px;}
+  .session-field-group.dist{width:78px;}
+  .session-field-group.pace{width:96px;}
+  .session-label{
+    font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;
+    color:var(--ink-soft);text-transform:uppercase;
   }
-  .focus-w-emoji{font-size:32px;line-height:1;}
-  .focus-w-temp{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);}
-  .focus-field-label{
+  .session-input{
+    font-family:'Inter',sans-serif;font-weight:700;font-size:15px;color:var(--ink);
+    outline:none;border-bottom:2px solid var(--line-soft);padding:3px 2px;min-height:22px;
+  }
+  .session-input.dist{color:var(--route-red);}
+  .session-input.pace{color:var(--track-blue);}
+  .session-input[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;font-weight:400;}
+  .session-remove{
+    background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:16px;
+    padding:6px 6px;border-radius:5px;margin-top:14px;line-height:1;
+  }
+  .session-remove:hover{background:var(--line-soft);color:var(--route-red);}
+
+  .add-session-btn{
+    display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;
+    color:var(--track-blue);background:none;border:1.5px dashed var(--track-blue);
+    border-radius:8px;padding:9px 14px;cursor:pointer;width:100%;justify-content:center;
+    margin-top:10px;
+  }
+  .add-session-btn:hover{background:#EEF1FA;}
+
+  .focus-memo-block{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);}
+  .focus-memo-label{
     font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:1.5px;
-    color:var(--ink-soft);text-transform:uppercase;margin-bottom:2px;
+    color:var(--ink-soft);text-transform:uppercase;margin-bottom:4px;
   }
-  .focus-field{
-    font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1.1;
-    outline:none;color:var(--ink);border-bottom:2px solid var(--line-soft);padding:2px 0;
-  }
-  .focus-field.dist{color:var(--route-red);}
-  .focus-field.pace{color:var(--track-blue);}
-  .focus-field[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;}
-  .focus-menu{
-    font-family:'Inter',sans-serif;font-weight:700;font-size:19px;line-height:1.35;
-    outline:none;color:var(--ink);border-bottom:2px solid var(--line-soft);padding:2px 0;min-height:26px;
-  }
-  .focus-menu[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;font-weight:400;}
   .focus-memo{
     font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;color:var(--ink-soft);
-    outline:none;min-height:44px;
+    outline:none;min-height:30px;
   }
   .focus-memo[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;}
 
@@ -215,7 +239,7 @@
   .cell.selected{outline:3px solid var(--track-blue);outline-offset:-1px;}
   .cell.done{background:var(--sage-bg);border-color:var(--sage);}
   .cell-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;}
-  .cell-top-left{display:flex;align-items:center;gap:5px;}
+  .cell-top-left{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
   .chk{display:flex;align-items:center;cursor:pointer;}
   .chk input{width:15px;height:15px;accent-color:var(--sage);cursor:pointer;}
   .bib{
@@ -269,16 +293,17 @@
   .stopwatch-btn .dot{width:9px;height:9px;border-radius:50%;background:var(--lane-yellow);}
 
   .dow-label{display:none;}
-  .dp-row{display:contents;}
 
   @media(max-width:700px){
     .title{font-size:38px;}
     .lapboard{flex-wrap:wrap;}
     .lapcard{flex:1 1 25%;border-bottom:1px solid rgba(255,255,255,.16);}
-    .focus-card{flex-wrap:wrap;}
-    .focus-left{border-right:none;border-bottom:4px dashed rgba(255,255,255,.25);width:100%;}
-    .focus-main,.focus-mid,.focus-right{border-right:none;border-bottom:1px solid var(--line);width:100%;}
-    .focus-weather{border-left:none;border-top:1px solid var(--line);width:100%;}
+
+    .session-fields{gap:10px;}
+    .session-field-group.menu{flex-basis:100%;}
+    .session-field-group.type{width:96px;}
+    .session-field-group.dist{width:70px;}
+    .session-field-group.pace{width:88px;}
 
     /* switch the month grid to a one-row-per-day list for comfortable tapping */
     .weekrow{display:none;}
@@ -325,13 +350,13 @@
   </div>
 
   <div class="banner">
-    <span>⚠️ このメニュー表は共有データです。保存済み表示を確認してください</span>
+    <span>⚠️このメニュー表は共有データなので保存済み表示を確認してください</span>
     <span class="status" id="statusText"></span>
   </div>
 
   <div id="exportRoot">
     <div class="masthead">
-      <div class="eyebrow">Go for it</div>
+      <div class="eyebrow">NANA RUNNING </div>
       <div class="title" id="titleText">NANA RUNNING MENU</div>
       <div class="lanes"></div>
       <div class="subline">天気: <b>東京</b> の週間予報</div>
@@ -340,49 +365,32 @@
     <div class="lapboard" id="lapboard"></div>
 
     <div class="focus-card" id="focusCard">
-      <div class="focus-left">
-        <div class="focus-eyebrow">SELECTED DAY</div>
-        <div class="focus-bib" id="focusBib">-</div>
-        <div class="focus-dow" id="focusDow">-</div>
-        <label class="focus-done" id="focusDoneWrap">
-          <input type="checkbox" id="focusDoneCheckbox">
-          <span id="focusDoneLabel">未実施</span>
-        </label>
-      </div>
-      <div class="focus-main">
-        <div>
-          <div class="focus-field-label">練習内容</div>
-          <select class="type-pill focus-type-select" id="focusType">
-            <option value="">－ 未選択</option>
-            <option value="jog">jog</option>
-            <option value="point">ポイント</option>
-            <option value="junpoint">準ポイント</option>
-            <option value="off">OFF</option>
-            <option value="race">レース</option>
-          </select>
+      <div class="focus-header">
+        <div class="focus-header-left">
+          <div>
+            <div class="focus-eyebrow" id="focusEyebrow">TODAY'S MENU</div>
+            <div class="focus-bib" id="focusBib">-</div>
+          </div>
+          <div class="focus-dow-block">
+            <div class="focus-dow" id="focusDow">-</div>
+            <label class="focus-done" id="focusDoneWrap">
+              <input type="checkbox" id="focusDoneCheckbox">
+              <span id="focusDoneLabel">未実施</span>
+            </label>
+          </div>
         </div>
-        <div>
-          <div class="focus-field-label">メニュー</div>
-          <div class="focus-menu" contenteditable="true" data-placeholder="例: 20km jog + 流し4本" id="focusMenu"></div>
+        <div class="focus-header-right">
+          <div class="focus-w-emoji" id="focusWEmoji">－</div>
+          <div class="focus-w-temp" id="focusWTemp"></div>
         </div>
       </div>
-      <div class="focus-mid">
-        <div>
-          <div class="focus-field-label">距離</div>
-          <div class="focus-field dist" contenteditable="true" data-placeholder="0 km" id="focusDistance"></div>
+      <div class="focus-body">
+        <div class="sessions-list" id="focusSessions"></div>
+        <button class="add-session-btn" id="addSessionBtn">＋ 練習を追加(合宿の3部練など)</button>
+        <div class="focus-memo-block">
+          <div class="focus-memo-label">メモ</div>
+          <div class="focus-memo" contenteditable="true" data-placeholder="体調や気づき、共有メモなど…" id="focusMemo"></div>
         </div>
-        <div>
-          <div class="focus-field-label">設定ペース</div>
-          <div class="focus-field pace" contenteditable="true" data-placeholder="例: 5'30&quot;" id="focusPace"></div>
-        </div>
-      </div>
-      <div class="focus-right">
-        <div class="focus-field-label">メモ</div>
-        <div class="focus-memo" contenteditable="true" data-placeholder="体調や気づき、共有メモなど…" id="focusMemo"></div>
-      </div>
-      <div class="focus-weather">
-        <div class="focus-w-emoji" id="focusWEmoji">－</div>
-        <div class="focus-w-temp" id="focusWTemp"></div>
       </div>
     </div>
 
@@ -396,11 +404,11 @@
           <div class="stat-value" id="totalDist">0<span>km</span></div>
         </div>
         <div>
-          <div class="stat-label">ラン日数</div>
+          <div class="stat-label">実施日数</div>
           <div class="stat-value" id="totalDays">0<span>日</span></div>
         </div>
       </div>
-      <div class="legend"><b>赤字</b>=距離 ・ <span style="color:var(--track-blue);font-weight:700;">青字</span>=目標ペース ・ ✓=実施済み</div>
+      <div class="legend"><b>赤字</b>=距離 ・ <span style="color:var(--track-blue);font-weight:700;">青字</span>=目標ペース ・ ✓=実施済み ・ ×N=練習N本</div>
     </div>
   </div>
 
@@ -412,8 +420,6 @@
 <script>
 /* ======================================================================
    ▼▼▼ ここにFirebaseプロジェクトの設定値を貼り付けてください ▼▼▼
-   Firebaseコンソール → プロジェクトの概要 → </> (ウェブアプリ) → 設定
-   で表示される firebaseConfig の中身をそのままコピーしてOKです。
    ====================================================================== */
 const firebaseConfig = {
   apiKey: "AIzaSyBrUi42ZpTNEfQxzvHX_19IeFYbcr1SZGI",
@@ -464,15 +470,42 @@ let state = {
   forecast: {},
   selectedDate: null
 };
-let saveTimer = null;
-let monthRef = null;
+let saveTimers = {};   // dateKey -> timeoutId  (each day saves independently)
+let daysRef = null;    // firebase ref to months/{monthKey}/days
 
 function monthKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
 function fmtDate(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+
+function blankSession(){ return {type:'', menu:'', distance:'', pace:''}; }
+
+// accepts raw data from Firebase (old flat-field format or new sessions format)
+// and always returns the current normalized shape
+function normalizeDay(raw){
+  raw = raw || {};
+  let sessions;
+  if(Array.isArray(raw.sessions) && raw.sessions.length > 0){
+    sessions = raw.sessions.map(s=>({
+      type: (s && s.type) || '', menu: (s && s.menu) || '',
+      distance: (s && s.distance) || '', pace: (s && s.pace) || ''
+    }));
+  }else if(raw.type !== undefined || raw.menu !== undefined || raw.distance !== undefined || raw.pace !== undefined){
+    sessions = [{type: raw.type||'', menu: raw.menu||'', distance: raw.distance||'', pace: raw.pace||''}];
+  }else{
+    sessions = [blankSession()];
+  }
+  return {
+    sessions,
+    memo: raw.memo || '',
+    weather: raw.weather || null,
+    done: !!raw.done
+  };
+}
+
 function ensureDay(key){
-  if(!state.dayData[key]) state.dayData[key] = {type:'',menu:'',distance:'',pace:'',memo:'',weather:null,done:false};
+  if(!state.dayData[key]) state.dayData[key] = normalizeDay(null);
   return state.dayData[key];
 }
+
 function setStatus(text){
   const el = document.getElementById('statusText');
   if(el) el.textContent = text;
@@ -482,11 +515,11 @@ function isEditingNow(){
   return a && a.isContentEditable;
 }
 
-/* ---------------- Firebase: load / save (realtime) ---------------- */
+/* ---------------- Firebase: load / save (per-day, realtime) ---------------- */
 function loadMonth(year, month){
   if(!db){ setStatus('⚠ Firebase未設定'); return; }
   showLoadingOverlay(true);
-  if(monthRef) monthRef.off();
+  if(daysRef) daysRef.off();
 
   state.year = year; state.month = month;
   const now = new Date();
@@ -494,10 +527,11 @@ function loadMonth(year, month){
   state.selectedDate = (now.getFullYear()===year && now.getMonth()===month) ? todayKey : fmtDate(year,month,1);
 
   let firstCallback = true;
-  monthRef = db.ref('months/'+monthKey(year,month));
-  monthRef.on('value', snapshot=>{
-    const val = snapshot.val();
-    const days = (val && val.days) ? val.days : {};
+  daysRef = db.ref('months/'+monthKey(year,month)+'/days');
+  daysRef.on('value', snapshot=>{
+    const rawDays = snapshot.val() || {};
+    const days = {};
+    Object.keys(rawDays).forEach(k=>{ days[k] = normalizeDay(rawDays[k]); });
 
     if(firstCallback){
       firstCallback = false;
@@ -505,7 +539,10 @@ function loadMonth(year, month){
       renderCalendar();
       renderFocusCard();
       showLoadingOverlay(false);
-      if(!val) saveNow(); // register this new month so it shows up in the list
+      if(Object.keys(rawDays).length === 0){
+        // register the month so it appears in the dropdown even before any edits
+        db.ref('months/'+monthKey(year,month)+'/meta').set({createdAt:Date.now()}).catch(()=>{});
+      }
       refreshMonthSelect();
       return;
     }
@@ -521,19 +558,21 @@ function loadMonth(year, month){
   });
 }
 
-function scheduleSave(){
+function scheduleSave(dateKey){
   setStatus('入力中…');
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveNow, 900);
+  clearTimeout(saveTimers[dateKey]);
+  saveTimers[dateKey] = setTimeout(()=>saveDay(dateKey), 900);
 }
 
-async function saveNow(){
-  clearTimeout(saveTimer);
-  saveTimer = null;
-  if(!db || !monthRef){ setStatus('⚠ Firebase未設定'); return; }
+async function saveDay(dateKey){
+  clearTimeout(saveTimers[dateKey]);
+  delete saveTimers[dateKey];
+  if(!db || !daysRef){ setStatus('⚠ Firebase未設定'); return; }
   setStatus('保存中…');
   try{
-    await monthRef.set({days: state.dayData, updatedAt: Date.now()});
+    // only this single day's node is written - edits to other days
+    // (from another device/tab) are never touched or overwritten
+    await daysRef.child(dateKey).set(state.dayData[dateKey]);
     const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
     setStatus('✓ 保存済み ' + t);
     refreshMonthSelect();
@@ -541,6 +580,12 @@ async function saveNow(){
     setStatus('⚠ 保存に失敗しました');
     console.error(e);
   }
+}
+
+async function flushPendingSaves(){
+  const keys = Object.keys(saveTimers);
+  if(keys.length === 0) return;
+  await Promise.all(keys.map(k=>saveDay(k)));
 }
 
 async function refreshMonthSelect(){
@@ -610,6 +655,7 @@ function renderCalendar(){
     const dow = (firstDow + dayNum - 1) % 7;
     const key = fmtDate(year,month,dayNum);
     const data = ensureDay(key);
+    const s0 = data.sessions[0];
     const isToday = key === todayKey;
     const isSelected = key === state.selectedDate;
 
@@ -623,6 +669,7 @@ function renderCalendar(){
 
     const wtext = data.weather ? data.weather.text : '';
     const wtemp = data.weather && data.weather.temp ? data.weather.temp : '';
+    const multiBadge = data.sessions.length > 1 ? `<span class="multi-badge">×${data.sessions.length}</span>` : '';
 
     cell.innerHTML = `
       <div class="cell-top">
@@ -630,17 +677,18 @@ function renderCalendar(){
           <label class="chk"><input type="checkbox" data-role="done" ${data.done?'checked':''}></label>
           <div class="bib">${dayNum}</div>
           <span class="dow-label">${WEEKDAY_JA[dow]}曜</span>
+          ${multiBadge}
         </div>
         <div style="text-align:right;">
           <div class="wbadge" data-role="weather">${wtext || '－'}</div>
           <div class="wtemp">${wtemp}</div>
         </div>
       </div>
-      <select class="type-pill ${TYPE_CLASS[data.type]||''}" data-role="type">${typeOptionsHtml(data.type)}</select>
-      <div class="field menu" contenteditable="true" data-placeholder="メニュー" data-role="menu">${data.menu||''}</div>
+      <select class="type-pill ${TYPE_CLASS[s0.type]||''}" data-role="type">${typeOptionsHtml(s0.type)}</select>
+      <div class="field menu" contenteditable="true" data-placeholder="メニュー" data-role="menu">${s0.menu||''}</div>
       <div class="dp-row">
-        <div class="field dist" contenteditable="true" data-placeholder="0 km" data-role="distance">${data.distance||''}</div>
-        <div class="field pace" contenteditable="true" data-placeholder="ペース" data-role="pace">${data.pace||''}</div>
+        <div class="field dist" contenteditable="true" data-placeholder="0 km" data-role="distance">${s0.distance||''}</div>
+        <div class="field pace" contenteditable="true" data-placeholder="ペース" data-role="pace">${s0.pace||''}</div>
       </div>
       <div class="memo" contenteditable="true" data-placeholder="メモ" data-role="memo">${data.memo||''}</div>
     `;
@@ -660,28 +708,32 @@ function attachCellEvents(){
     cell.addEventListener('click', ()=>{ selectDate(key); });
 
     cell.querySelector('[data-role="menu"]').addEventListener('input', e=>{
-      data.menu = e.target.textContent.trim(); scheduleSave();
-      if(state.selectedDate===key) syncFocusFromData(key, {skip:'menu'});
+      data.sessions[0].menu = e.target.textContent.trim(); scheduleSave(key);
+      if(state.selectedDate===key) renderFocusSessions();
     });
     cell.querySelector('[data-role="distance"]').addEventListener('input', e=>{
-      data.distance = e.target.textContent.trim(); updateStats(); scheduleSave();
-      if(state.selectedDate===key) syncFocusFromData(key, {skip:'distance'});
+      data.sessions[0].distance = e.target.textContent.trim(); updateStats(); scheduleSave(key);
+      if(state.selectedDate===key) renderFocusSessions();
     });
     cell.querySelector('[data-role="pace"]').addEventListener('input', e=>{
-      data.pace = e.target.textContent.trim(); scheduleSave();
-      if(state.selectedDate===key) syncFocusFromData(key, {skip:'pace'});
+      data.sessions[0].pace = e.target.textContent.trim(); scheduleSave(key);
+      if(state.selectedDate===key) renderFocusSessions();
     });
-    cell.querySelector('[data-role="memo"]').addEventListener('input', e=>{
-      data.memo = e.target.textContent.trim(); scheduleSave();
-      if(state.selectedDate===key) syncFocusFromData(key, {skip:'memo'});
+    const memoEl = cell.querySelector('[data-role="memo"]');
+    memoEl.addEventListener('input', e=>{
+      data.memo = e.target.textContent.trim(); scheduleSave(key);
+      if(state.selectedDate===key){
+        const fm = document.getElementById('focusMemo');
+        if(document.activeElement !== fm) fm.textContent = data.memo;
+      }
     });
     const typeSel = cell.querySelector('[data-role="type"]');
     typeSel.addEventListener('click', e=> e.stopPropagation());
     typeSel.addEventListener('change', e=>{
-      data.type = e.target.value;
-      typeSel.className = 'type-pill ' + (TYPE_CLASS[data.type]||'');
-      scheduleSave();
-      if(state.selectedDate===key) syncFocusFromData(key, {skip:'type'});
+      data.sessions[0].type = e.target.value;
+      typeSel.className = 'type-pill ' + (TYPE_CLASS[data.sessions[0].type]||'');
+      scheduleSave(key);
+      if(state.selectedDate===key) renderFocusSessions();
     });
     cell.querySelector('[data-role="weather"]').addEventListener('click', e=>{
       e.stopPropagation();
@@ -692,16 +744,23 @@ function attachCellEvents(){
       data.weather = next ? {text:next, temp:(data.weather&&data.weather.temp)||'', auto:false} : null;
       e.target.textContent = next || '－';
       cell.querySelector('.wtemp').textContent = data.weather ? (data.weather.temp||'') : '';
-      scheduleSave();
-      if(state.selectedDate===key) syncFocusFromData(key, {skip:'weather'});
+      scheduleSave(key);
+      if(state.selectedDate===key){
+        document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
+        document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
+      }
     });
     const doneChk = cell.querySelector('[data-role="done"]');
     doneChk.addEventListener('click', e=> e.stopPropagation());
     doneChk.addEventListener('change', e=>{
       data.done = e.target.checked;
       cell.classList.toggle('done', data.done);
-      scheduleSave(); updateStats();
-      if(state.selectedDate===key) syncFocusFromData(key, {skip:'done'});
+      scheduleSave(key); updateStats();
+      if(state.selectedDate===key){
+        document.getElementById('focusDoneCheckbox').checked = data.done;
+        document.getElementById('focusDoneWrap').classList.toggle('done', data.done);
+        document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
+      }
     });
   });
 }
@@ -720,8 +779,10 @@ function selectDate(key){
 function updateStats(){
   let total = 0, done = 0;
   Object.values(state.dayData).forEach(d=>{
-    const n = parseFloat((d.distance||'').replace(/[^0-9.]/g,''));
-    if(!isNaN(n) && n>0){ total += n; }
+    (d.sessions||[]).forEach(s=>{
+      const n = parseFloat((s.distance||'').replace(/[^0-9.]/g,''));
+      if(!isNaN(n) && n>0) total += n;
+    });
     if(d.done) done++;
   });
   document.getElementById('totalDist').innerHTML = total.toFixed(1).replace(/\.0$/,'') + '<span>km</span>';
@@ -739,16 +800,9 @@ function renderFocusCard(){
   document.getElementById('focusBib').textContent = `${m}/${d}`;
   document.getElementById('focusDow').textContent = WEEKDAY_JA[dt.getDay()] + '曜日';
 
-  document.getElementById('focusType').value = data.type || '';
-
-  const menuEl = document.getElementById('focusMenu');
-  const distEl = document.getElementById('focusDistance');
-  const paceEl = document.getElementById('focusPace');
-  const memoEl = document.getElementById('focusMemo');
-  if(document.activeElement !== menuEl) menuEl.textContent = data.menu || '';
-  if(document.activeElement !== distEl) distEl.textContent = data.distance || '';
-  if(document.activeElement !== paceEl) paceEl.textContent = data.pace || '';
-  if(document.activeElement !== memoEl) memoEl.textContent = data.memo || '';
+  const now = new Date();
+  const todayKey = fmtDate(now.getFullYear(), now.getMonth(), now.getDate());
+  document.getElementById('focusEyebrow').textContent = (key === todayKey) ? "TODAY'S MENU" : "選択した日のメニュー";
 
   const cb = document.getElementById('focusDoneCheckbox');
   cb.checked = !!data.done;
@@ -757,89 +811,151 @@ function renderFocusCard(){
 
   document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
   document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
-}
 
-function syncFocusFromData(key, opts={}){
-  if(state.selectedDate !== key) return;
-  const data = ensureDay(key);
-  if(opts.skip !== 'type'){
-    document.getElementById('focusType').value = data.type || '';
-  }
-  if(opts.skip !== 'menu'){
-    const el = document.getElementById('focusMenu');
-    if(document.activeElement !== el) el.textContent = data.menu || '';
-  }
-  if(opts.skip !== 'distance'){
-    const el = document.getElementById('focusDistance');
-    if(document.activeElement !== el) el.textContent = data.distance || '';
-  }
-  if(opts.skip !== 'pace'){
-    const el = document.getElementById('focusPace');
-    if(document.activeElement !== el) el.textContent = data.pace || '';
-  }
-  if(opts.skip !== 'memo'){
-    const el = document.getElementById('focusMemo');
-    if(document.activeElement !== el) el.textContent = data.memo || '';
-  }
-  if(opts.skip !== 'weather'){
-    document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
-    document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
-  }
-  if(opts.skip !== 'done'){
-    document.getElementById('focusDoneCheckbox').checked = !!data.done;
-    document.getElementById('focusDoneWrap').classList.toggle('done', !!data.done);
-    document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
-  }
-}
-
-function syncCellFromData(key){
-  const cell = document.querySelector(`.cell[data-date="${key}"]`);
-  if(!cell) return;
-  const data = ensureDay(key);
-  const typeSel = cell.querySelector('[data-role="type"]');
-  typeSel.value = data.type || '';
-  typeSel.className = 'type-pill ' + (TYPE_CLASS[data.type]||'');
-  const menuEl = cell.querySelector('[data-role="menu"]');
-  const distEl = cell.querySelector('[data-role="distance"]');
-  const paceEl = cell.querySelector('[data-role="pace"]');
-  const memoEl = cell.querySelector('[data-role="memo"]');
-  if(document.activeElement !== menuEl) menuEl.textContent = data.menu || '';
-  if(document.activeElement !== distEl) distEl.textContent = data.distance || '';
-  if(document.activeElement !== paceEl) paceEl.textContent = data.pace || '';
+  const memoEl = document.getElementById('focusMemo');
   if(document.activeElement !== memoEl) memoEl.textContent = data.memo || '';
-  cell.querySelector('[data-role="weather"]').textContent = data.weather ? data.weather.text : '－';
-  cell.querySelector('.wtemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
-  cell.querySelector('[data-role="done"]').checked = !!data.done;
-  cell.classList.toggle('done', !!data.done);
+
+  renderFocusSessions();
 }
 
-document.getElementById('focusType').addEventListener('change', e=>{
-  const key = state.selectedDate; const data = ensureDay(key);
-  data.type = e.target.value; scheduleSave(); syncCellFromData(key);
+function renderFocusSessions(){
+  const key = state.selectedDate;
+  if(!key) return;
+  const data = ensureDay(key);
+  const wrap = document.getElementById('focusSessions');
+  wrap.innerHTML = data.sessions.map((s, idx)=>`
+    <div class="session-row" data-idx="${idx}">
+      <div class="session-num">${idx+1}本目</div>
+      <div class="session-fields">
+        <div class="session-field-group type">
+          <div class="session-label">練習内容</div>
+          <select class="type-pill ${TYPE_CLASS[s.type]||''}" data-idx="${idx}" data-role="s-type">${typeOptionsHtml(s.type)}</select>
+        </div>
+        <div class="session-field-group menu">
+          <div class="session-label">メニュー</div>
+          <div class="session-input" contenteditable="true" data-idx="${idx}" data-role="s-menu" data-placeholder="例: 20km jog + 流し4本">${s.menu||''}</div>
+        </div>
+        <div class="session-field-group dist">
+          <div class="session-label">距離</div>
+          <div class="session-input dist" contenteditable="true" data-idx="${idx}" data-role="s-distance" data-placeholder="0 km">${s.distance||''}</div>
+        </div>
+        <div class="session-field-group pace">
+          <div class="session-label">目標ペース</div>
+          <div class="session-input pace" contenteditable="true" data-idx="${idx}" data-role="s-pace" data-placeholder="5'30&quot;">${s.pace||''}</div>
+        </div>
+      </div>
+      ${data.sessions.length>1 ? `<button class="session-remove" data-idx="${idx}" title="この練習を削除">✕</button>` : ''}
+    </div>
+  `).join('');
+
+  wrap.querySelectorAll('[data-role="s-type"]').forEach(el=>{
+    el.addEventListener('click', e=>e.stopPropagation());
+    el.addEventListener('change', e=>{
+      const i = +e.target.dataset.idx;
+      data.sessions[i].type = e.target.value;
+      e.target.className = 'type-pill ' + (TYPE_CLASS[data.sessions[i].type]||'');
+      scheduleSave(key);
+      if(i===0) syncCellFromData(key);
+    });
+  });
+  wrap.querySelectorAll('[data-role="s-menu"]').forEach(el=>{
+    el.addEventListener('input', e=>{
+      const i = +e.target.dataset.idx;
+      data.sessions[i].menu = e.target.textContent.trim();
+      scheduleSave(key);
+      if(i===0) syncCellFromData(key);
+    });
+  });
+  wrap.querySelectorAll('[data-role="s-distance"]').forEach(el=>{
+    el.addEventListener('input', e=>{
+      const i = +e.target.dataset.idx;
+      data.sessions[i].distance = e.target.textContent.trim();
+      updateStats(); scheduleSave(key);
+      if(i===0) syncCellFromData(key);
+    });
+  });
+  wrap.querySelectorAll('[data-role="s-pace"]').forEach(el=>{
+    el.addEventListener('input', e=>{
+      const i = +e.target.dataset.idx;
+      data.sessions[i].pace = e.target.textContent.trim();
+      scheduleSave(key);
+      if(i===0) syncCellFromData(key);
+    });
+  });
+  wrap.querySelectorAll('.session-remove').forEach(el=>{
+    el.addEventListener('click', e=>{
+      const i = +e.target.dataset.idx;
+      data.sessions.splice(i,1);
+      updateStats();
+      scheduleSave(key);
+      renderFocusSessions();
+      syncCellFromData(key);
+    });
+  });
+}
+
+document.getElementById('addSessionBtn').addEventListener('click', ()=>{
+  const key = state.selectedDate;
+  if(!key) return;
+  const data = ensureDay(key);
+  data.sessions.push(blankSession());
+  scheduleSave(key);
+  renderFocusSessions();
+  syncCellFromData(key);
 });
-document.getElementById('focusMenu').addEventListener('input', e=>{
-  const key = state.selectedDate; const data = ensureDay(key);
-  data.menu = e.target.textContent.trim(); scheduleSave(); syncCellFromData(key);
-});
-document.getElementById('focusDistance').addEventListener('input', e=>{
-  const key = state.selectedDate; const data = ensureDay(key);
-  data.distance = e.target.textContent.trim(); updateStats(); scheduleSave(); syncCellFromData(key);
-});
-document.getElementById('focusPace').addEventListener('input', e=>{
-  const key = state.selectedDate; const data = ensureDay(key);
-  data.pace = e.target.textContent.trim(); scheduleSave(); syncCellFromData(key);
-});
-document.getElementById('focusMemo').addEventListener('input', e=>{
-  const key = state.selectedDate; const data = ensureDay(key);
-  data.memo = e.target.textContent.trim(); scheduleSave(); syncCellFromData(key);
-});
+
 document.getElementById('focusDoneCheckbox').addEventListener('change', e=>{
   const key = state.selectedDate; const data = ensureDay(key);
   data.done = e.target.checked;
   document.getElementById('focusDoneWrap').classList.toggle('done', data.done);
   document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
-  updateStats(); scheduleSave(); syncCellFromData(key);
+  updateStats(); scheduleSave(key);
+  const cell = document.querySelector(`.cell[data-date="${key}"]`);
+  if(cell){
+    cell.querySelector('[data-role="done"]').checked = data.done;
+    cell.classList.toggle('done', data.done);
+  }
 });
+
+document.getElementById('focusMemo').addEventListener('input', e=>{
+  const key = state.selectedDate; const data = ensureDay(key);
+  data.memo = e.target.textContent.trim(); scheduleSave(key);
+  const cell = document.querySelector(`.cell[data-date="${key}"]`);
+  if(cell){
+    const memoEl = cell.querySelector('[data-role="memo"]');
+    if(document.activeElement !== memoEl) memoEl.textContent = data.memo;
+  }
+});
+
+// keep the calendar cell's first-session fields + multi-session badge in sync
+// after edits made inside the focus card
+function syncCellFromData(key){
+  const cell = document.querySelector(`.cell[data-date="${key}"]`);
+  if(!cell) return;
+  const data = ensureDay(key);
+  const s0 = data.sessions[0];
+  const typeSel = cell.querySelector('[data-role="type"]');
+  typeSel.value = s0.type || '';
+  typeSel.className = 'type-pill ' + (TYPE_CLASS[s0.type]||'');
+  const menuEl = cell.querySelector('[data-role="menu"]');
+  const distEl = cell.querySelector('[data-role="distance"]');
+  const paceEl = cell.querySelector('[data-role="pace"]');
+  if(document.activeElement !== menuEl) menuEl.textContent = s0.menu || '';
+  if(document.activeElement !== distEl) distEl.textContent = s0.distance || '';
+  if(document.activeElement !== paceEl) paceEl.textContent = s0.pace || '';
+
+  let badge = cell.querySelector('.multi-badge');
+  if(data.sessions.length > 1){
+    if(!badge){
+      badge = document.createElement('span');
+      badge.className = 'multi-badge';
+      cell.querySelector('.cell-top-left').appendChild(badge);
+    }
+    badge.textContent = '×' + data.sessions.length;
+  }else if(badge){
+    badge.remove();
+  }
+}
 
 /* ---------------- weather (Tokyo only) ---------------- */
 async function fetchWeather(){
@@ -883,7 +999,7 @@ function renderLapboard(){
 }
 
 function applyForecastToCalendar(){
-  let touched = false;
+  let touchedKeys = [];
   Object.keys(state.forecast).forEach(key=>{
     const data = ensureDay(key);
     if(data.weather && data.weather.auto===false) return;
@@ -891,7 +1007,7 @@ function applyForecastToCalendar(){
     const text = wmoIcon(f.code), temp = `${f.tmax}/${f.tmin}°`;
     if(!data.weather || data.weather.text!==text || data.weather.temp!==temp){
       data.weather = {text, temp, auto:true};
-      touched = true;
+      touchedKeys.push(key);
     }
   });
   document.querySelectorAll('.cell[data-date]').forEach(cell=>{
@@ -902,25 +1018,31 @@ function applyForecastToCalendar(){
       cell.querySelector('.wtemp').textContent = data.weather.temp || '';
     }
   });
-  if(state.selectedDate) syncFocusFromData(state.selectedDate);
-  if(touched) scheduleSave();
+  if(state.selectedDate){
+    const data = state.dayData[state.selectedDate];
+    if(data && data.weather){
+      document.getElementById('focusWEmoji').textContent = data.weather.text;
+      document.getElementById('focusWTemp').textContent = data.weather.temp || '';
+    }
+  }
+  touchedKeys.forEach(k=>scheduleSave(k));
 }
 
 /* ---------------- navigation ---------------- */
 document.getElementById('prevBtn').addEventListener('click', async ()=>{
-  if(saveTimer) await saveNow();
+  await flushPendingSaves();
   let m = state.month-1, y = state.year;
   if(m<0){m=11; y--;}
   loadMonth(y,m);
 });
 document.getElementById('nextBtn').addEventListener('click', async ()=>{
-  if(saveTimer) await saveNow();
+  await flushPendingSaves();
   let m = state.month+1, y = state.year;
   if(m>11){m=0; y++;}
   loadMonth(y,m);
 });
 document.getElementById('monthSelect').addEventListener('change', async (e)=>{
-  if(saveTimer) await saveNow();
+  await flushPendingSaves();
   const [y,m] = e.target.value.split('-').map(Number);
   loadMonth(y, m-1);
 });
@@ -942,7 +1064,6 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
     const imgData = canvas.toDataURL('image/png');
     const { jsPDF } = window.jspdf;
     // build a single page sized to exactly fit the captured content
-    // (canvas is rendered at scale:2 and ~96dpi, so convert px -> pt at 72/96 = 0.75, /2 for the scale)
     const margin = 24; // pt
     const pxToPt = 0.75 / 2;
     const contentWidthPt = canvas.width * pxToPt;
