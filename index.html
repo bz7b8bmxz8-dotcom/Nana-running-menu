@@ -470,9 +470,9 @@ let state = {
   forecast: {},
   selectedDate: null
 };
-let saveTimers = {};   // dateKey -> timeoutId  (each day saves independently)
-let localWritePending = {}; // dateKey -> true while our local change must win over realtime echo
-let daysRef = null;    // firebase ref to months/{monthKey}/days
+let saveTimers = {};     // dateKey -> timeoutId  (debounce still pending, not yet sent)
+let inFlightSaves = {};  // dateKey -> true while a write request is in flight to Firebase
+let daysRef = null;      // firebase ref to months/{monthKey}/days
 
 function monthKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
 function fmtDate(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
@@ -511,10 +511,21 @@ function setStatus(text){
   const el = document.getElementById('statusText');
   if(el) el.textContent = text;
 }
-function isEditingNow(){
+
+// true while the user's cursor/focus is currently inside this specific day's
+// editable fields (either the calendar cell or, if it's the selected day, the
+// big focus card) - used so realtime updates never yank text out from under
+// someone who is mid-keystroke.
+function isEditingDay(dateKey){
   const a = document.activeElement;
-  if(a && (a.isContentEditable || a.tagName === 'SELECT' || a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) return true;
-  return !!(state.selectedDate && localWritePending[state.selectedDate]);
+  if(!a) return false;
+  const activeCell = a.closest && a.closest(`.cell[data-date="${dateKey}"]`);
+  if(activeCell) return true;
+  if(state.selectedDate === dateKey){
+    const focusCard = document.getElementById('focusCard');
+    if(focusCard && focusCard.contains(a) && (a.isContentEditable || a.tagName === 'SELECT' || a.tagName === 'INPUT')) return true;
+  }
+  return false;
 }
 
 /* ---------------- Firebase: load / save (per-day, realtime) ---------------- */
@@ -548,22 +559,24 @@ function loadMonth(year, month){
       refreshMonthSelect();
       return;
     }
-    // Ignore the realtime echo of a local edit. The local state has already
-    // been updated and rendered, so replacing it with the previous snapshot
-    // would make newly added/removed sessions briefly appear and disappear.
-    const pendingKeys = Object.keys(localWritePending).filter(k=>localWritePending[k]);
-    if(pendingKeys.length){
-      pendingKeys.forEach(k=>{
-        if(days[k] && JSON.stringify(days[k]) === JSON.stringify(state.dayData[k])){
-          delete localWritePending[k];
-        }
-      });
-      if(pendingKeys.some(k=>localWritePending[k])) return;
+
+    // Merge day-by-day instead of replacing the whole month at once. A day is
+    // only skipped (kept as-is locally) while it still has an unsent debounce
+    // timer, a save currently in flight, or the person's cursor is inside it -
+    // every other day always takes the fresh server value. This means a stuck
+    // or slow-to-resolve day can never block the rest of the month from
+    // syncing, and there is no fragile "does this look identical" comparison
+    // that can get permanently stuck.
+    let changed = false;
+    Object.keys(days).forEach(k=>{
+      if(saveTimers[k] || inFlightSaves[k] || isEditingDay(k)) return;
+      state.dayData[k] = days[k];
+      changed = true;
+    });
+    if(changed){
+      renderCalendar();
+      renderFocusCard();
     }
-    if(isEditingNow()) return;
-    state.dayData = days;
-    renderCalendar();
-    renderFocusCard();
   }, err=>{
     showLoadingOverlay(false);
     setStatus('⚠ 接続エラー');
@@ -573,7 +586,6 @@ function loadMonth(year, month){
 
 function scheduleSave(dateKey){
   setStatus('入力中…');
-  localWritePending[dateKey] = true;
   clearTimeout(saveTimers[dateKey]);
   saveTimers[dateKey] = setTimeout(()=>saveDay(dateKey), 900);
 }
@@ -581,24 +593,21 @@ function scheduleSave(dateKey){
 async function saveDay(dateKey){
   clearTimeout(saveTimers[dateKey]);
   delete saveTimers[dateKey];
-  if(!db || !daysRef){
-    delete localWritePending[dateKey];
-    setStatus('⚠ Firebase未設定');
-    return;
-  }
-  localWritePending[dateKey] = true;
+  if(!db || !daysRef){ setStatus('⚠ Firebase未設定'); return; }
+  inFlightSaves[dateKey] = true;
   setStatus('保存中…');
   try{
-    // Write only this day. Keep the local version until Firebase has echoed
-    // the same value back, so add/remove operations cannot be rolled back.
+    // only this single day's node is written - edits to other days
+    // (from another device/tab) are never touched or overwritten
     await daysRef.child(dateKey).set(state.dayData[dateKey]);
     const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
     setStatus('✓ 保存済み ' + t);
     refreshMonthSelect();
   }catch(e){
-    delete localWritePending[dateKey];
     setStatus('⚠ 保存に失敗しました');
     console.error(e);
+  }finally{
+    delete inFlightSaves[dateKey];
   }
 }
 
@@ -903,36 +912,32 @@ function renderFocusSessions(){
     });
   });
   wrap.querySelectorAll('.session-remove').forEach(el=>{
-    el.addEventListener('click', async e=>{
+    el.addEventListener('click', e=>{
       e.preventDefault();
       e.stopPropagation();
       const i = Number(e.currentTarget.dataset.idx);
       if(!Number.isInteger(i) || i < 0 || i >= data.sessions.length) return;
       if(data.sessions.length <= 1) return;
-
-      localWritePending[key] = true;
       data.sessions.splice(i,1);
+      updateStats();
+      scheduleSave(key);
       renderFocusSessions();
       syncCellFromData(key);
-      updateStats();
-      await saveDay(key);
     });
   });
 }
 
-document.getElementById('addSessionBtn').addEventListener('click', async e=>{
+document.getElementById('addSessionBtn').addEventListener('click', e=>{
   e.preventDefault();
   e.stopPropagation();
   const key = state.selectedDate;
   if(!key) return;
   const data = ensureDay(key);
-
-  localWritePending[key] = true;
   data.sessions.push(blankSession());
+  updateStats();
+  scheduleSave(key);
   renderFocusSessions();
   syncCellFromData(key);
-  updateStats();
-  await saveDay(key);
 });
 
 document.getElementById('focusDoneCheckbox').addEventListener('change', e=>{
