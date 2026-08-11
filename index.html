@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ななさん夢へのランニングメニュー表</title>
+<title>ランニングメニュー表</title>
 
-<!-- ホーム画面追加用のアイコン設定 -->
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
@@ -16,413 +15,1198 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <style>
-  :root{
-    --paper:#F3F5F3;
-    --panel:#FFFFFF;
-    --ink:#1B2430;
-    --ink-soft:#5B6472;
-    --track-blue:#1C3F94;
-    --track-blue-deep:#132C6B;
-    --lane-yellow:#F4C10F;
-    --route-red:#E1483D;
-    --sage:#6E9075;
-    --sage-bg:#EEF5F0;
-    --line:#DCE0E2;
-    --line-soft:#EAEDEE;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--paper);
-    color:var(--ink);
-    font-family:'Inter',sans-serif;
-    padding:28px 16px 60px;
-  }
-  .wrap{max-width:1080px;margin:0 auto;}
+:root{
+  --paper:#F3F5F3;
+  --panel:#FFFFFF;
+  --ink:#1B2430;
+  --ink-soft:#5B6472;
+  --track-blue:#1C3F94;
+  --track-blue-deep:#132C6B;
+  --lane-yellow:#F4C10F;
+  --route-red:#E1483D;
+  --sage:#6E9075;
+  --sage-bg:#EEF5F0;
+  --line:#DCE0E2;
+  --line-soft:#EAEDEE;
+}
 
-  .toolbar{
-    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
-    justify-content:space-between;margin-bottom:10px;
-  }
-  .nav-group,.month-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  button{
-    font-family:'Inter',sans-serif;font-weight:600;font-size:13px;
-    border:1.5px solid var(--ink);background:var(--panel);color:var(--ink);
-    padding:8px 14px;border-radius:6px;cursor:pointer;transition:.15s;
-  }
-  button:hover{background:var(--ink);color:#fff;}
-  button.icon{padding:8px 10px;}
-  select{
-    font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;
-    border:1.5px solid var(--line);border-radius:6px;
-  }
-  select:focus{outline:2px solid var(--lane-yellow);border-color:var(--track-blue);}
-  .month-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.5px;min-width:150px;text-align:center;}
+*{
+  box-sizing:border-box;
+}
 
-  .banner{
-    display:flex;align-items:center;gap:8px;justify-content:space-between;
-    background:#FFF7DD;border:1px solid #EFDD9A;border-radius:8px;
-    padding:9px 14px;font-size:12px;color:#6B5B12;margin-bottom:18px;flex-wrap:wrap;
-  }
-  .status{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  padding:28px 16px 60px;
+}
 
-  .config-block{
-    background:#FDECEC;border:1.5px solid #F3B4B0;border-radius:10px;
-    padding:20px 22px;margin-bottom:20px;color:#8A241D;font-size:13px;line-height:1.7;
-  }
-  .config-block b{display:block;font-size:15px;margin-bottom:6px;}
-  .config-block code{background:#fff;padding:1px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+.wrap{
+  max-width:1080px;
+  margin:0 auto;
+}
 
-  #exportRoot{background:var(--paper);position:relative;}
-  .loading-overlay{
-    position:absolute;inset:0;background:rgba(243,245,243,.85);
-    display:flex;align-items:center;justify-content:center;
-    font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-soft);
-    z-index:5;border-radius:10px;
-  }
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
 
-  .masthead{padding:6px 0 18px;}
-  .eyebrow{
-    font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
-    letter-spacing:3px;color:var(--route-red);text-transform:uppercase;
-  }
+.nav-group,
+.month-group{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+button{
+  font-family:'Inter',sans-serif;
+  font-weight:600;
+  font-size:13px;
+  border:1.5px solid var(--ink);
+  background:var(--panel);
+  color:var(--ink);
+  padding:8px 14px;
+  border-radius:6px;
+  cursor:pointer;
+  transition:.15s;
+}
+
+button:hover{
+  background:var(--ink);
+  color:#fff;
+}
+
+button:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+button.icon{
+  padding:8px 10px;
+}
+
+select{
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:8px 10px;
+  border:1.5px solid var(--line);
+  border-radius:6px;
+}
+
+select:focus{
+  outline:2px solid var(--lane-yellow);
+  border-color:var(--track-blue);
+}
+
+.month-label{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:20px;
+  letter-spacing:.5px;
+  min-width:150px;
+  text-align:center;
+}
+
+.banner{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  justify-content:space-between;
+  background:#FFF7DD;
+  border:1px solid #EFDD9A;
+  border-radius:8px;
+  padding:9px 14px;
+  font-size:12px;
+  color:#6B5B12;
+  margin-bottom:18px;
+  flex-wrap:wrap;
+}
+
+.status{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  color:var(--ink-soft);
+  white-space:nowrap;
+}
+
+.config-block{
+  background:#FDECEC;
+  border:1.5px solid #F3B4B0;
+  border-radius:10px;
+  padding:20px 22px;
+  margin-bottom:20px;
+  color:#8A241D;
+  font-size:13px;
+  line-height:1.7;
+}
+
+.config-block b{
+  display:block;
+  font-size:15px;
+  margin-bottom:6px;
+}
+
+.config-block code{
+  background:#fff;
+  padding:1px 6px;
+  border-radius:4px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+}
+
+#exportRoot{
+  background:var(--paper);
+  position:relative;
+}
+
+.loading-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(243,245,243,.85);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:13px;
+  color:var(--ink-soft);
+  z-index:5;
+  border-radius:10px;
+}
+
+.masthead{
+  padding:6px 0 18px;
+}
+
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:3px;
+  color:var(--route-red);
+  text-transform:uppercase;
+}
+
+.title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:56px;
+  line-height:.95;
+  letter-spacing:1px;
+  color:var(--ink);
+  margin:4px 0 10px;
+}
+
+.lanes{
+  height:6px;
+  width:100%;
+  background:repeating-linear-gradient(
+    90deg,
+    var(--track-blue) 0 26px,
+    transparent 26px 40px
+  );
+  border-radius:3px;
+  margin-bottom:4px;
+}
+
+.subline{
+  font-size:12.5px;
+  color:var(--ink-soft);
+  margin-top:6px;
+}
+
+.subline b{
+  color:var(--ink);
+}
+
+.lapboard{
+  background:var(--track-blue);
+  border-radius:10px;
+  overflow:hidden;
+  display:flex;
+  margin:20px 0 20px;
+  box-shadow:0 4px 14px rgba(28,63,148,.18);
+}
+
+.lapcard{
+  flex:1;
+  min-width:0;
+  padding:12px 6px 14px;
+  text-align:center;
+  color:#fff;
+  border-right:1px solid rgba(255,255,255,.16);
+  position:relative;
+}
+
+.lapcard:last-child{
+  border-right:none;
+}
+
+.lapcard.today{
+  background:rgba(244,193,15,.16);
+}
+
+.lapcard.today:after{
+  content:'TODAY';
+  position:absolute;
+  top:4px;
+  left:0;
+  right:0;
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;
+  letter-spacing:1px;
+  color:var(--lane-yellow);
+}
+
+.lap-dow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  opacity:.75;
+  margin-top:8px;
+}
+
+.lap-date{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;
+  margin:2px 0 6px;
+}
+
+.lap-emoji{
+  font-size:22px;
+  line-height:1;
+  margin-bottom:6px;
+}
+
+.lap-temp{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  font-weight:700;
+}
+
+.lap-temp .lo{
+  opacity:.6;
+  font-weight:400;
+}
+
+.lap-pop{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;
+  color:var(--lane-yellow);
+  margin-top:4px;
+}
+
+.type-pill{
+  font-family:'Inter',sans-serif;
+  font-weight:700;
+  font-size:10.5px;
+  border-radius:5px;
+  border:1.5px solid var(--line);
+  background:var(--paper);
+  color:var(--ink-soft);
+  padding:3px 4px;
+  width:100%;
+  cursor:pointer;
+  text-align:center;
+  appearance:none;
+  -webkit-appearance:none;
+}
+
+.type-pill.t-jog{
+  background:var(--sage-bg);
+  color:var(--sage);
+  border-color:var(--sage);
+}
+
+.type-pill.t-point{
+  background:#FCEBEA;
+  color:var(--route-red);
+  border-color:var(--route-red);
+}
+
+.type-pill.t-junpoint{
+  background:#FEF6DA;
+  color:#8A6D06;
+  border-color:var(--lane-yellow);
+}
+
+.type-pill.t-off{
+  background:var(--line-soft);
+  color:var(--ink-soft);
+  border-color:var(--line);
+}
+
+.type-pill.t-race{
+  background:var(--track-blue);
+  color:#fff;
+  border-color:var(--track-blue);
+}
+
+.multi-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9.5px;
+  font-weight:700;
+  color:#fff;
+  background:var(--route-red);
+  border-radius:8px;
+  padding:1px 6px;
+  margin-left:4px;
+  white-space:nowrap;
+}
+
+.focus-card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  margin-bottom:24px;
+  box-shadow:0 6px 18px rgba(27,36,48,.06);
+}
+
+.focus-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  background:var(--ink);
+  color:#fff;
+  padding:14px 20px;
+  flex-wrap:wrap;
+}
+
+.focus-header-left{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+
+.focus-eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  letter-spacing:2px;
+  color:var(--lane-yellow);
+  text-transform:uppercase;
+}
+
+.focus-bib{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:34px;
+  line-height:1;
+}
+
+.focus-dow-block{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
+}
+
+.focus-dow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:rgba(255,255,255,.7);
+}
+
+.focus-done{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  cursor:pointer;
+  font-family:'Inter',sans-serif;
+  font-size:12px;
+  font-weight:700;
+}
+
+.focus-done input{
+  width:17px;
+  height:17px;
+  accent-color:var(--lane-yellow);
+  cursor:pointer;
+}
+
+.focus-done.done span{
+  color:var(--lane-yellow);
+}
+
+.focus-header-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.focus-w-emoji{
+  font-size:24px;
+  line-height:1;
+}
+
+.focus-w-temp{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:rgba(255,255,255,.7);
+}
+
+.focus-body{
+  padding:18px 20px;
+}
+
+.sessions-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.session-row{
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:10px 12px;
+  flex-wrap:wrap;
+}
+
+.session-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  font-weight:700;
+  color:var(--ink-soft);
+  min-width:42px;
+  padding-top:20px;
+}
+
+.session-fields{
+  flex:1;
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  min-width:0;
+}
+
+.session-field-group{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.session-field-group.menu{
+  flex:2;
+  min-width:160px;
+}
+
+.session-field-group.type{
+  width:112px;
+}
+
+.session-field-group.dist{
+  width:78px;
+}
+
+.session-field-group.pace{
+  width:96px;
+}
+
+.session-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  letter-spacing:1px;
+  color:var(--ink-soft);
+  text-transform:uppercase;
+}
+
+.session-input{
+  font-family:'Inter',sans-serif;
+  font-weight:700;
+  font-size:15px;
+  color:var(--ink);
+  outline:none;
+  border-bottom:2px solid var(--line-soft);
+  padding:3px 2px;
+  min-height:22px;
+}
+
+.session-input.dist{
+  color:var(--route-red);
+}
+
+.session-input.pace{
+  color:var(--track-blue);
+}
+
+.session-input[data-placeholder]:empty:before{
+  content:attr(data-placeholder);
+  color:#C3C9CD;
+  font-weight:400;
+}
+
+.session-remove{
+  background:none;
+  border:none;
+  color:var(--ink-soft);
+  cursor:pointer;
+  font-size:16px;
+  padding:6px 6px;
+  border-radius:5px;
+  margin-top:14px;
+  line-height:1;
+}
+
+.session-remove:hover{
+  background:var(--line-soft);
+  color:var(--route-red);
+}
+
+.add-session-btn{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--track-blue);
+  background:none;
+  border:1.5px dashed var(--track-blue);
+  border-radius:8px;
+  padding:9px 14px;
+  cursor:pointer;
+  width:100%;
+  justify-content:center;
+  margin-top:10px;
+}
+
+.add-session-btn:hover{
+  background:#EEF1FA;
+}
+
+.focus-memo-block{
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+
+.focus-memo-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9.5px;
+  letter-spacing:1.5px;
+  color:var(--ink-soft);
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+
+.focus-memo{
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  color:var(--ink-soft);
+  outline:none;
+  min-height:30px;
+}
+
+.focus-memo[data-placeholder]:empty:before{
+  content:attr(data-placeholder);
+  color:#C3C9CD;
+}
+
+.weekrow{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+  margin-bottom:8px;
+}
+
+.weekrow div{
+  text-align:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  font-weight:700;
+  letter-spacing:1px;
+  color:var(--ink-soft);
+  text-transform:uppercase;
+}
+
+.weekrow div.sun{
+  color:var(--route-red);
+}
+
+.weekrow div.sat{
+  color:var(--track-blue);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+}
+
+.cell{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:9px;
+  padding:8px 7px 8px;
+  min-height:172px;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  position:relative;
+  cursor:pointer;
+  transition:box-shadow .12s;
+}
+
+.cell.pad{
+  background:transparent;
+  border:1px dashed var(--line-soft);
+  min-height:172px;
+  cursor:default;
+}
+
+.cell.today{
+  border:2px solid var(--lane-yellow);
+}
+
+.cell.selected{
+  outline:3px solid var(--track-blue);
+  outline-offset:-1px;
+}
+
+.cell.done{
+  background:var(--sage-bg);
+  border-color:var(--sage);
+}
+
+.cell-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  margin-bottom:2px;
+}
+
+.cell-top-left{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  flex-wrap:wrap;
+}
+
+.chk{
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+}
+
+.chk input{
+  width:15px;
+  height:15px;
+  accent-color:var(--sage);
+  cursor:pointer;
+}
+
+.bib{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;
+  color:var(--ink);
+  background:var(--line-soft);
+  border-radius:5px;
+  padding:1px 7px;
+  border-left:3px dashed var(--ink-soft);
+}
+
+.cell.sun .bib{
+  color:var(--route-red);
+}
+
+.cell.sat .bib{
+  color:var(--track-blue);
+}
+
+.wbadge{
+  font-size:14px;
+  cursor:pointer;
+  user-select:none;
+  line-height:1;
+  padding:3px 5px;
+  border-radius:5px;
+  background:var(--paper);
+}
+
+.wbadge:hover{
+  background:var(--line-soft);
+}
+
+.wtemp{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  color:var(--ink-soft);
+  text-align:right;
+  margin-top:1px;
+}
+
+.field{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  font-weight:600;
+  border-bottom:1px solid var(--line-soft);
+  padding:2px 1px;
+  margin-bottom:1px;
+  min-height:16px;
+  outline:none;
+  color:var(--ink);
+  cursor:text;
+}
+
+.field.menu{
+  font-family:'Inter',sans-serif;
+  font-weight:700;
+  font-size:12px;
+  color:var(--ink);
+}
+
+.field.dist{
+  color:var(--route-red);
+}
+
+.field.pace{
+  color:var(--track-blue);
+}
+
+.field[data-placeholder]:empty:before{
+  content:attr(data-placeholder);
+  color:#B7BEC4;
+  font-weight:400;
+}
+
+.memo{
+  font-family:'Inter',sans-serif;
+  font-size:10.5px;
+  color:var(--ink-soft);
+  outline:none;
+  flex:1;
+  margin-top:1px;
+  line-height:1.3;
+  overflow-wrap:anywhere;
+  cursor:text;
+}
+
+.memo[data-placeholder]:empty:before{
+  content:attr(data-placeholder);
+  color:#B7BEC4;
+}
+
+.footer{
+  margin-top:22px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:14px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+
+.stats{
+  display:flex;
+  gap:26px;
+}
+
+.stat-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:1.5px;
+  color:var(--ink-soft);
+  text-transform:uppercase;
+}
+
+.stat-value{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:30px;
+  color:var(--ink);
+}
+
+.stat-value span{
+  font-family:'JetBrains Mono',monospace;
+  font-size:14px;
+  color:var(--ink-soft);
+  margin-left:3px;
+}
+
+.legend{
+  font-size:11px;
+  color:var(--ink-soft);
+}
+
+.legend b{
+  color:var(--route-red);
+}
+
+.exportbar{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:18px;
+}
+
+.stopwatch-btn{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:12px 20px;
+  background:var(--ink);
+  color:#fff;
+  border:none;
+  border-radius:30px;
+  font-family:'Inter',sans-serif;
+  font-weight:700;
+  font-size:13.5px;
+  box-shadow:0 6px 16px rgba(27,36,48,.25);
+  cursor:pointer;
+}
+
+.stopwatch-btn:hover{
+  background:var(--track-blue-deep);
+}
+
+.stopwatch-btn .dot{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:var(--lane-yellow);
+}
+
+.dow-label{
+  display:none;
+}
+
+@media(max-width:700px){
+
   .title{
-    font-family:'Bebas Neue',sans-serif;font-size:56px;line-height:.95;
-    letter-spacing:1px;color:var(--ink);margin:4px 0 10px;
+    font-size:38px;
   }
-  .lanes{
-    height:6px;width:100%;
-    background:repeating-linear-gradient(90deg,var(--track-blue) 0 26px, transparent 26px 40px);
-    border-radius:3px;margin-bottom:4px;
-  }
-  .subline{font-size:12.5px;color:var(--ink-soft);margin-top:6px;}
-  .subline b{color:var(--ink);}
 
   .lapboard{
-    background:var(--track-blue);border-radius:10px;overflow:hidden;
-    display:flex;margin:20px 0 20px;box-shadow:0 4px 14px rgba(28,63,148,.18);
+    flex-wrap:wrap;
   }
+
   .lapcard{
-    flex:1;min-width:0;padding:12px 6px 14px;text-align:center;color:#fff;
-    border-right:1px solid rgba(255,255,255,.16);position:relative;
-  }
-  .lapcard:last-child{border-right:none;}
-  .lapcard.today{background:rgba(244,193,15,.16);}
-  .lapcard.today:after{
-    content:'TODAY';position:absolute;top:4px;left:0;right:0;
-    font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--lane-yellow);
-  }
-  .lap-dow{font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.75;margin-top:8px;}
-  .lap-date{font-family:'Bebas Neue',sans-serif;font-size:22px;margin:2px 0 6px;}
-  .lap-emoji{font-size:22px;line-height:1;margin-bottom:6px;}
-  .lap-temp{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;}
-  .lap-temp .lo{opacity:.6;font-weight:400;}
-  .lap-pop{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--lane-yellow);margin-top:4px;}
-
-  /* ---- type pill (練習内容) shared styling ---- */
-  .type-pill{
-    font-family:'Inter',sans-serif;font-weight:700;font-size:10.5px;
-    border-radius:5px;border:1.5px solid var(--line);background:var(--paper);
-    color:var(--ink-soft);padding:3px 4px;width:100%;cursor:pointer;
-    text-align:center;appearance:none;-webkit-appearance:none;
-  }
-  .type-pill.t-jog{background:var(--sage-bg);color:var(--sage);border-color:var(--sage);}
-  .type-pill.t-point{background:#FCEBEA;color:var(--route-red);border-color:var(--route-red);}
-  .type-pill.t-junpoint{background:#FEF6DA;color:#8A6D06;border-color:var(--lane-yellow);}
-  .type-pill.t-off{background:var(--line-soft);color:var(--ink-soft);border-color:var(--line);}
-  .type-pill.t-race{background:var(--track-blue);color:#fff;border-color:var(--track-blue);}
-
-  /* ---- multi-session badge on the calendar cell ---- */
-  .multi-badge{
-    font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;color:#fff;
-    background:var(--route-red);border-radius:8px;padding:1px 6px;margin-left:4px;
-    white-space:nowrap;
+    flex:1 1 25%;
+    border-bottom:1px solid rgba(255,255,255,.16);
   }
 
-  /* ---- focus card: large view of the selected day ---- */
-  .focus-card{
-    background:var(--panel);border:1px solid var(--line);border-radius:12px;
-    overflow:hidden;margin-bottom:24px;box-shadow:0 6px 18px rgba(27,36,48,.06);
+  .session-fields{
+    gap:10px;
   }
-  .focus-header{
-    display:flex;align-items:center;justify-content:space-between;gap:14px;
-    background:var(--ink);color:#fff;padding:14px 20px;flex-wrap:wrap;
-  }
-  .focus-header-left{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-  .focus-eyebrow{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--lane-yellow);text-transform:uppercase;}
-  .focus-bib{font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1;}
-  .focus-dow-block{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
-  .focus-dow{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,.7);}
-  .focus-done{
-    display:flex;align-items:center;gap:7px;cursor:pointer;
-    font-family:'Inter',sans-serif;font-size:12px;font-weight:700;
-  }
-  .focus-done input{width:17px;height:17px;accent-color:var(--lane-yellow);cursor:pointer;}
-  .focus-done.done span{color:var(--lane-yellow);}
-  .focus-header-right{display:flex;align-items:center;gap:8px;}
-  .focus-w-emoji{font-size:24px;line-height:1;}
-  .focus-w-temp{font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,.7);}
 
-  .focus-body{padding:18px 20px;}
-  .sessions-list{display:flex;flex-direction:column;gap:10px;}
-  .session-row{
-    display:flex;gap:12px;align-items:flex-start;background:var(--paper);
-    border:1px solid var(--line);border-radius:10px;padding:10px 12px;flex-wrap:wrap;
+  .session-field-group.menu{
+    flex-basis:100%;
   }
-  .session-num{
-    font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--ink-soft);
-    min-width:42px;padding-top:20px;
-  }
-  .session-fields{flex:1;display:flex;gap:14px;flex-wrap:wrap;min-width:0;}
-  .session-field-group{display:flex;flex-direction:column;gap:3px;}
-  .session-field-group.menu{flex:2;min-width:160px;}
-  .session-field-group.type{width:112px;}
-  .session-field-group.dist{width:78px;}
-  .session-field-group.pace{width:96px;}
-  .session-label{
-    font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;
-    color:var(--ink-soft);text-transform:uppercase;
-  }
-  .session-input{
-    font-family:'Inter',sans-serif;font-weight:700;font-size:15px;color:var(--ink);
-    outline:none;border-bottom:2px solid var(--line-soft);padding:3px 2px;min-height:22px;
-  }
-  .session-input.dist{color:var(--route-red);}
-  .session-input.pace{color:var(--track-blue);}
-  .session-input[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;font-weight:400;}
-  .session-remove{
-    background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:16px;
-    padding:6px 6px;border-radius:5px;margin-top:14px;line-height:1;
-  }
-  .session-remove:hover{background:var(--line-soft);color:var(--route-red);}
 
-  .add-session-btn{
-    display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;
-    color:var(--track-blue);background:none;border:1.5px dashed var(--track-blue);
-    border-radius:8px;padding:9px 14px;cursor:pointer;width:100%;justify-content:center;
-    margin-top:10px;
+  .session-field-group.type{
+    width:96px;
   }
-  .add-session-btn:hover{background:#EEF1FA;}
 
-  .focus-memo-block{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);}
-  .focus-memo-label{
-    font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:1.5px;
-    color:var(--ink-soft);text-transform:uppercase;margin-bottom:4px;
+  .session-field-group.dist{
+    width:70px;
   }
-  .focus-memo{
-    font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;color:var(--ink-soft);
-    outline:none;min-height:30px;
-  }
-  .focus-memo[data-placeholder]:empty:before{content:attr(data-placeholder);color:#C3C9CD;}
 
-  .weekrow{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px;}
-  .weekrow div{
-    text-align:center;font-family:'JetBrains Mono',monospace;font-size:11.5px;
-    font-weight:700;letter-spacing:1px;color:var(--ink-soft);text-transform:uppercase;
+  .session-field-group.pace{
+    width:88px;
   }
-  .weekrow div.sun{color:var(--route-red);}
-  .weekrow div.sat{color:var(--track-blue);}
 
-  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+  .weekrow{
+    display:none;
+  }
+
+  .grid{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+
+  .cell.pad{
+    display:none;
+  }
+
   .cell{
-    background:var(--panel);border:1px solid var(--line);border-radius:9px;
-    padding:8px 7px 8px;min-height:172px;display:flex;flex-direction:column;gap:3px;
-    position:relative;cursor:pointer;transition:box-shadow .12s;
+    min-height:auto;
+    padding:12px 14px;
+    border-radius:12px;
   }
-  .cell.pad{background:transparent;border:1px dashed var(--line-soft);min-height:172px;cursor:default;}
-  .cell.today{border:2px solid var(--lane-yellow);}
-  .cell.selected{outline:3px solid var(--track-blue);outline-offset:-1px;}
-  .cell.done{background:var(--sage-bg);border-color:var(--sage);}
-  .cell-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;}
-  .cell-top-left{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
-  .chk{display:flex;align-items:center;cursor:pointer;}
-  .chk input{width:15px;height:15px;accent-color:var(--sage);cursor:pointer;}
+
+  .cell-top{
+    margin-bottom:8px;
+  }
+
+  .chk input{
+    width:20px;
+    height:20px;
+  }
+
   .bib{
-    font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--ink);
-    background:var(--line-soft);border-radius:5px;padding:1px 7px;
-    border-left:3px dashed var(--ink-soft);
+    font-size:17px;
+    padding:2px 9px;
   }
-  .cell.sun .bib{color:var(--route-red);}
-  .cell.sat .bib{color:var(--track-blue);}
+
+  .dow-label{
+    display:inline;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-left:6px;
+  }
+
+  .cell.sun .dow-label{
+    color:var(--route-red);
+  }
+
+  .cell.sat .dow-label{
+    color:var(--track-blue);
+  }
+
   .wbadge{
-    font-size:14px;cursor:pointer;user-select:none;line-height:1;
-    padding:3px 5px;border-radius:5px;background:var(--paper);
+    font-size:18px;
+    padding:4px 8px;
   }
-  .wbadge:hover{background:var(--line-soft);}
-  .wtemp{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-soft);text-align:right;margin-top:1px;}
+
+  .wtemp{
+    font-size:11px;
+  }
+
+  .type-pill{
+    font-size:13px;
+    padding:7px 6px;
+    margin-bottom:4px;
+  }
 
   .field{
-    font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;
-    border-bottom:1px solid var(--line-soft);padding:2px 1px;margin-bottom:1px;
-    min-height:16px;outline:none;color:var(--ink);cursor:text;
+    font-size:15px;
+    padding:6px 2px;
+    min-height:22px;
   }
-  .field.menu{font-family:'Inter',sans-serif;font-weight:700;font-size:12px;color:var(--ink);}
-  .field.dist{color:var(--route-red);}
-  .field.pace{color:var(--track-blue);}
-  .field[data-placeholder]:empty:before{content:attr(data-placeholder);color:#B7BEC4;font-weight:400;}
+
+  .field.menu{
+    font-size:15px;
+  }
+
+  .dp-row{
+    display:flex;
+    gap:14px;
+    margin-bottom:2px;
+  }
+
+  .dp-row .field{
+    flex:1;
+  }
+
   .memo{
-    font-family:'Inter',sans-serif;font-size:10.5px;color:var(--ink-soft);
-    outline:none;flex:1;margin-top:1px;line-height:1.3;overflow-wrap:anywhere;cursor:text;
+    font-size:13.5px;
+    margin-top:6px;
   }
-  .memo[data-placeholder]:empty:before{content:attr(data-placeholder);color:#B7BEC4;}
-
-  .footer{
-    margin-top:22px;display:flex;justify-content:space-between;align-items:center;
-    flex-wrap:wrap;gap:14px;padding-top:16px;border-top:1px solid var(--line);
-  }
-  .stats{display:flex;gap:26px;}
-  .stat-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.5px;color:var(--ink-soft);text-transform:uppercase;}
-  .stat-value{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--ink);}
-  .stat-value span{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink-soft);margin-left:3px;}
-  .legend{font-size:11px;color:var(--ink-soft);}
-  .legend b{color:var(--route-red);}
-
-  .exportbar{display:flex;justify-content:flex-end;margin-top:18px;}
-  .stopwatch-btn{
-    display:flex;align-items:center;gap:8px;padding:12px 20px;
-    background:var(--ink);color:#fff;border:none;border-radius:30px;
-    font-family:'Inter',sans-serif;font-weight:700;font-size:13.5px;
-    box-shadow:0 6px 16px rgba(27,36,48,.25);cursor:pointer;
-  }
-  .stopwatch-btn:hover{background:var(--track-blue-deep);}
-  .stopwatch-btn .dot{width:9px;height:9px;border-radius:50%;background:var(--lane-yellow);}
-
-  .dow-label{display:none;}
-
-  @media(max-width:700px){
-    .title{font-size:38px;}
-    .lapboard{flex-wrap:wrap;}
-    .lapcard{flex:1 1 25%;border-bottom:1px solid rgba(255,255,255,.16);}
-
-    .session-fields{gap:10px;}
-    .session-field-group.menu{flex-basis:100%;}
-    .session-field-group.type{width:96px;}
-    .session-field-group.dist{width:70px;}
-    .session-field-group.pace{width:88px;}
-
-    /* switch the month grid to a one-row-per-day list for comfortable tapping */
-    .weekrow{display:none;}
-    .grid{display:flex;flex-direction:column;gap:10px;}
-    .cell.pad{display:none;}
-    .cell{
-      min-height:auto;padding:12px 14px;border-radius:12px;
-    }
-    .cell-top{margin-bottom:8px;}
-    .chk input{width:20px;height:20px;}
-    .bib{font-size:17px;padding:2px 9px;}
-    .dow-label{display:inline;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--ink-soft);margin-left:6px;}
-    .cell.sun .dow-label{color:var(--route-red);}
-    .cell.sat .dow-label{color:var(--track-blue);}
-    .wbadge{font-size:18px;padding:4px 8px;}
-    .wtemp{font-size:11px;}
-    .type-pill{font-size:13px;padding:7px 6px;margin-bottom:4px;}
-    .field{font-size:15px;padding:6px 2px;min-height:22px;}
-    .field.menu{font-size:15px;}
-    .dp-row{display:flex;gap:14px;margin-bottom:2px;}
-    .dp-row .field{flex:1;}
-    .memo{font-size:13.5px;margin-top:6px;}
-  }
+}
 </style>
 </head>
+
 <body>
+
 <div class="wrap">
 
   <div id="configError" class="config-block" style="display:none;">
     <b>⚠️ Firebaseの設定が完了していません</b>
-    このHTMLファイル内の <code>firebaseConfig</code> に、Firebaseプロジェクトの設定値(apiKey / databaseURL など)を貼り付けてから保存・公開してください。設定が終わるまでは、入力しても内容は保存されません。
+    このHTMLファイル内の <code>firebaseConfig</code> に、Firebaseプロジェクトの設定値を設定してください。
   </div>
 
   <div class="toolbar">
+
     <div class="nav-group">
       <button id="prevBtn">◀ 前月</button>
       <div class="month-label" id="monthLabel">-</div>
       <button id="nextBtn">次月 ▶</button>
     </div>
+
     <div class="month-group">
-      <select id="monthSelect"><option>読み込み中...</option></select>
-      <button id="refreshBtn" class="icon" title="最新の内容を取得">🔄 更新</button>
+      <select id="monthSelect">
+        <option>読み込み中...</option>
+      </select>
+
+      <button id="refreshBtn" class="icon" title="最新の内容を取得">
+        🔄 更新
+      </button>
     </div>
+
   </div>
 
   <div class="banner">
-    <span>⚠️このメニュー表は共有データなので保存済み表示を確認してください</span>
+    <span>
+      ⚠️ このメニュー表は共有データです。このリンクを知っている人は誰でも閲覧・編集できます。
+    </span>
+
     <span class="status" id="statusText"></span>
   </div>
 
   <div id="exportRoot">
+
     <div class="masthead">
-      <div class="eyebrow">Go For it</div>
-      <div class="title" id="titleText">NANA RUNNING MENU</div>
+      <div class="eyebrow">NANA RUNNING CREW</div>
+
+      <div class="title" id="titleText">
+        RUNNING MENU
+      </div>
+
       <div class="lanes"></div>
-      <div class="subline">天気: <b>東京</b> の週間予報</div>
+
+      <div class="subline">
+        天気: <b>東京</b> の週間予報 
+      </div>
     </div>
 
     <div class="lapboard" id="lapboard"></div>
 
     <div class="focus-card" id="focusCard">
+
       <div class="focus-header">
+
         <div class="focus-header-left">
+
           <div>
-            <div class="focus-eyebrow" id="focusEyebrow">TODAY'S MENU</div>
-            <div class="focus-bib" id="focusBib">-</div>
+            <div class="focus-eyebrow" id="focusEyebrow">
+              TODAY'S MENU
+            </div>
+
+            <div class="focus-bib" id="focusBib">
+              -
+            </div>
           </div>
+
           <div class="focus-dow-block">
-            <div class="focus-dow" id="focusDow">-</div>
+
+            <div class="focus-dow" id="focusDow">
+              -
+            </div>
+
             <label class="focus-done" id="focusDoneWrap">
-              <input type="checkbox" id="focusDoneCheckbox">
-              <span id="focusDoneLabel">未実施</span>
+
+              <input
+                type="checkbox"
+                id="focusDoneCheckbox"
+              >
+
+              <span id="focusDoneLabel">
+                未実施
+              </span>
+
             </label>
+
           </div>
+
         </div>
+
         <div class="focus-header-right">
-          <div class="focus-w-emoji" id="focusWEmoji">－</div>
+
+          <div class="focus-w-emoji" id="focusWEmoji">
+            －
+          </div>
+
           <div class="focus-w-temp" id="focusWTemp"></div>
+
         </div>
+
       </div>
+
       <div class="focus-body">
+
         <div class="sessions-list" id="focusSessions"></div>
-        <button class="add-session-btn" id="addSessionBtn">＋ 練習を追加</button>
+
+        <button class="add-session-btn" id="addSessionBtn">
+          ＋ 練習を追加(合宿の3部練など)
+        </button>
+
         <div class="focus-memo-block">
-          <div class="focus-memo-label">メモ</div>
-          <div class="focus-memo" contenteditable="true" data-placeholder="体調や気づき、共有メモなど…" id="focusMemo"></div>
+
+          <div class="focus-memo-label">
+            メモ
+          </div>
+
+          <div
+            class="focus-memo"
+            contenteditable="true"
+            data-placeholder="体調や気づき、共有メモなど…"
+            id="focusMemo"
+          ></div>
+
         </div>
+
       </div>
+
     </div>
 
     <div class="weekrow" id="weekrow"></div>
+
     <div class="grid" id="grid"></div>
 
     <div class="footer">
+
       <div class="stats">
+
         <div>
-          <div class="stat-label">合計走行距離</div>
-          <div class="stat-value" id="totalDist">0<span>km</span></div>
+          <div class="stat-label">
+            合計走行距離
+          </div>
+
+          <div class="stat-value" id="totalDist">
+            0<span>km</span>
+          </div>
         </div>
+
         <div>
-          <div class="stat-label">実施日数</div>
-          <div class="stat-value" id="totalDays">0<span>日</span></div>
+          <div class="stat-label">
+            実施日数
+          </div>
+
+          <div class="stat-value" id="totalDays">
+            0<span>日</span>
+          </div>
         </div>
+
       </div>
-      <div class="legend"><b>赤字</b>=距離 ・ <span style="color:var(--track-blue);font-weight:700;">青字</span>=目標ペース ・ ✓=実施済み ・ ×N=練習N本</div>
+
+      <div class="legend">
+        <b>赤字</b>=距離 ・
+        <span style="color:var(--track-blue);font-weight:700;">
+          青字
+        </span>=目標ペース ・
+        ✓=実施済み ・ ×N=練習N本
+      </div>
+
     </div>
+
   </div>
 
   <div class="exportbar">
-    <button class="stopwatch-btn" id="pdfBtn"><span class="dot"></span>この月のメニューをPDFでダウンロード</button>
+
+    <button class="stopwatch-btn" id="pdfBtn">
+      <span class="dot"></span>
+      この月のメニューをPDFでダウンロード
+    </button>
+
   </div>
+
 </div>
 
+
 <script>
-/* ======================================================================
-   ▼▼▼ ここにFirebaseプロジェクトの設定値を貼り付けてください ▼▼▼
-   ====================================================================== */
+
+/* ============================================================
+   Firebase設定
+   ============================================================ */
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBrUi42ZpTNEfQxzvHX_19IeFYbcr1SZGI",
+  apiKey: "AIzaSyBrUi42ZpTNeFQxzvHX_19IeFYbcr1SZGI",
   authDomain: "runmenu-1abfd.firebaseapp.com",
   databaseURL: "https://runmenu-1abfd-default-rtdb.asia-southeast1.firebasedatabase.app/",
   projectId: "runmenu-1abfd",
@@ -430,705 +1214,3328 @@ const firebaseConfig = {
   messagingSenderId: "814429943884",
   appId: "1:814429943884:web:d5b1bf201b4f91b27a5ce9"
 };
-/* ▲▲▲ ここまで ▲▲▲ ================================================= */
 
-const CONFIG_OK = firebaseConfig.apiKey && !firebaseConfig.apiKey.includes('ここに')
-                && firebaseConfig.databaseURL && !firebaseConfig.databaseURL.includes('ここに');
+
+/* ============================================================
+   Firebase初期化
+   ============================================================ */
+
+const CONFIG_OK =
+  firebaseConfig.apiKey &&
+  !firebaseConfig.apiKey.includes('ここに') &&
+  firebaseConfig.databaseURL &&
+  !firebaseConfig.databaseURL.includes('ここに');
 
 let db = null;
+
 if(CONFIG_OK){
+
   try{
+
     firebase.initializeApp(firebaseConfig);
+
     db = firebase.database();
+
   }catch(e){
-    console.error('Firebase init error', e);
+
+    console.error('Firebase init error:', e);
+
   }
+
 }else{
+
   document.getElementById('configError').style.display = 'block';
+
 }
 
-const WEEKDAY_JA = ['日','月','火','水','木','金','土'];
-const WEATHER_CYCLE = ['','☀️','⛅','☁️','🌧️','❄️'];
-const TOKYO = {lat:35.6895, lon:139.6917};
-const TYPE_LABEL = {'':'－ 未選択', jog:'jog', point:'ポイント', junpoint:'準ポイント', off:'OFF', race:'レース'};
-const TYPE_CLASS = {'':'', jog:'t-jog', point:'t-point', junpoint:'t-junpoint', off:'t-off', race:'t-race'};
-const WMO = {
-  0:{e:'☀️'},1:{e:'🌤️'},2:{e:'⛅'},3:{e:'☁️'},
-  45:{e:'🌫️'},48:{e:'🌫️'},
-  51:{e:'🌦️'},53:{e:'🌦️'},55:{e:'🌦️'},
-  61:{e:'🌧️'},63:{e:'🌧️'},65:{e:'🌧️'},
-  71:{e:'❄️'},73:{e:'❄️'},75:{e:'❄️'},
-  80:{e:'🌦️'},81:{e:'🌧️'},82:{e:'🌧️'},
-  95:{e:'⛈️'},96:{e:'⛈️'},99:{e:'⛈️'}
+
+/* ============================================================
+   基本設定
+   ============================================================ */
+
+const WEEKDAY_JA = [
+  '日','月','火','水','木','金','土'
+];
+
+const WEATHER_CYCLE = [
+  '',
+  '☀️',
+  '⛅',
+  '☁️',
+  '🌧️',
+  '❄️'
+];
+
+const TOKYO = {
+  lat:35.6895,
+  lon:139.6917
 };
-function wmoIcon(code){ return (WMO[code]||{e:'—'}).e; }
+
+const TYPE_LABEL = {
+  '':'－ 未選択',
+  jog:'jog',
+  point:'ポイント',
+  junpoint:'準ポイント',
+  off:'OFF',
+  race:'レース'
+};
+
+const TYPE_CLASS = {
+  '':'',
+  jog:'t-jog',
+  point:'t-point',
+  junpoint:'t-junpoint',
+  off:'t-off',
+  race:'t-race'
+};
+
+const WMO = {
+  0:{e:'☀️'},
+  1:{e:'🌤️'},
+  2:{e:'⛅'},
+  3:{e:'☁️'},
+  45:{e:'🌫️'},
+  48:{e:'🌫️'},
+  51:{e:'🌦️'},
+  53:{e:'🌦️'},
+  55:{e:'🌦️'},
+  61:{e:'🌧️'},
+  63:{e:'🌧️'},
+  65:{e:'🌧️'},
+  71:{e:'❄️'},
+  73:{e:'❄️'},
+  75:{e:'❄️'},
+  80:{e:'🌦️'},
+  81:{e:'🌧️'},
+  82:{e:'🌧️'},
+  95:{e:'⛈️'},
+  96:{e:'⛈️'},
+  99:{e:'⛈️'}
+};
+
+function wmoIcon(code){
+  return (WMO[code] || {e:'—'}).e;
+}
+
+
+/* ============================================================
+   アプリ状態
+   ============================================================ */
 
 let state = {
-  year: new Date().getFullYear(),
-  month: new Date().getMonth(),
-  dayData: {},
-  forecast: {},
-  selectedDate: null
+
+  year:new Date().getFullYear(),
+
+  month:new Date().getMonth(),
+
+  dayData:{},
+
+  forecast:{},
+
+  selectedDate:null
+
 };
-let saveTimers = {};     // dateKey -> timeoutId  (debounce still pending, not yet sent)
-let inFlightSaves = {};  // dateKey -> true while a write request is in flight to Firebase
-let daysRef = null;      // firebase ref to months/{monthKey}/days
 
-function monthKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
-function fmtDate(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
 
-function blankSession(){ return {type:'', menu:'', distance:'', pace:''}; }
+/* ============================================================
+   保存管理
+   ============================================================ */
 
-// accepts raw data from Firebase (old flat-field format or new sessions format)
-// and always returns the current normalized shape
-function normalizeDay(raw){
-  raw = raw || {};
-  let sessions;
-  if(Array.isArray(raw.sessions) && raw.sessions.length > 0){
-    sessions = raw.sessions.map(s=>({
-      type: (s && s.type) || '', menu: (s && s.menu) || '',
-      distance: (s && s.distance) || '', pace: (s && s.pace) || ''
-    }));
-  }else if(raw.type !== undefined || raw.menu !== undefined || raw.distance !== undefined || raw.pace !== undefined){
-    sessions = [{type: raw.type||'', menu: raw.menu||'', distance: raw.distance||'', pace: raw.pace||''}];
-  }else{
-    sessions = [blankSession()];
-  }
-  return {
-    sessions,
-    memo: raw.memo || '',
-    weather: raw.weather || null,
-    done: !!raw.done
-  };
+/*
+ * 保存タイマー
+ */
+let saveTimers = {};
+
+/*
+ * 保存待ちの日
+ */
+let pendingSaves = new Set();
+
+/*
+ * 現在保存中の日
+ */
+let saveInFlight = {};
+
+/*
+ * 保存バージョン
+ *
+ * 入力するたびに数字が増える。
+ * 保存中にさらに入力された場合、
+ * 古い保存が終わっても最新データを再保存する。
+ */
+let saveVersions = {};
+
+/*
+ * Firebaseの月データ参照
+ */
+let daysRef = null;
+
+
+/* ============================================================
+   日付関数
+   ============================================================ */
+
+function monthKey(y,m){
+
+  return `${y}-${String(m+1).padStart(2,'0')}`;
+
 }
+
+function fmtDate(y,m,d){
+
+  return (
+    y +
+    '-' +
+    String(m+1).padStart(2,'0') +
+    '-' +
+    String(d).padStart(2,'0')
+  );
+
+}
+
+
+/* ============================================================
+   セッション
+   ============================================================ */
+
+function blankSession(){
+
+  return {
+    type:'',
+    menu:'',
+    distance:'',
+    pace:''
+  };
+
+}
+
+
+/* ============================================================
+   Firebaseデータを現在の形に統一
+   ============================================================ */
+
+function normalizeDay(raw){
+
+  raw = raw || {};
+
+  let sessions;
+
+  if(
+    Array.isArray(raw.sessions) &&
+    raw.sessions.length > 0
+  ){
+
+    sessions = raw.sessions.map(s => ({
+      type:(s && s.type) || '',
+      menu:(s && s.menu) || '',
+      distance:(s && s.distance) || '',
+      pace:(s && s.pace) || ''
+    }));
+
+  }
+
+  else if(
+    raw.type !== undefined ||
+    raw.menu !== undefined ||
+    raw.distance !== undefined ||
+    raw.pace !== undefined
+  ){
+
+    sessions = [{
+      type:raw.type || '',
+      menu:raw.menu || '',
+      distance:raw.distance || '',
+      pace:raw.pace || ''
+    }];
+
+  }
+
+  else{
+
+    sessions = [blankSession()];
+
+  }
+
+  return {
+
+    sessions,
+
+    memo:raw.memo || '',
+
+    weather:raw.weather || null,
+
+    done:!!raw.done
+
+  };
+
+}
+
+
+/* ============================================================
+   データ取得
+   ============================================================ */
 
 function ensureDay(key){
-  if(!state.dayData[key]) state.dayData[key] = normalizeDay(null);
+
+  if(!state.dayData[key]){
+
+    state.dayData[key] = normalizeDay(null);
+
+  }
+
   return state.dayData[key];
+
 }
+
+
+/* ============================================================
+   ステータス
+   ============================================================ */
 
 function setStatus(text){
+
   const el = document.getElementById('statusText');
-  if(el) el.textContent = text;
-}
 
-// true while the user's cursor/focus is currently inside this specific day's
-// editable fields (either the calendar cell or, if it's the selected day, the
-// big focus card) - used so realtime updates never yank text out from under
-// someone who is mid-keystroke.
-function isEditingDay(dateKey){
-  const a = document.activeElement;
-  if(!a) return false;
-  const activeCell = a.closest && a.closest(`.cell[data-date="${dateKey}"]`);
-  if(activeCell) return true;
-  if(state.selectedDate === dateKey){
-    const focusCard = document.getElementById('focusCard');
-    if(focusCard && focusCard.contains(a) && (a.isContentEditable || a.tagName === 'SELECT' || a.tagName === 'INPUT')) return true;
+  if(el){
+
+    el.textContent = text;
+
   }
-  return false;
+
 }
 
-/* ---------------- Firebase: load / save (per-day, realtime) ---------------- */
-function loadMonth(year, month){
-  if(!db){ setStatus('⚠ Firebase未設定'); return; }
-  showLoadingOverlay(true);
-  if(daysRef) daysRef.off();
 
-  state.year = year; state.month = month;
+/* ============================================================
+   現在入力中か確認
+   ============================================================ */
+
+function isEditingNow(){
+
+  const a = document.activeElement;
+
+  return !!(
+    a &&
+    a.isContentEditable
+  );
+
+}
+
+
+/* ============================================================
+   月データ読み込み
+   ============================================================ */
+
+function loadMonth(year,month){
+
+  if(!db){
+
+    setStatus('⚠ Firebase未設定');
+
+    return;
+
+  }
+
+  showLoadingOverlay(true);
+
+  /*
+   * 前の月のリアルタイム監視を解除
+   */
+  if(daysRef){
+
+    daysRef.off();
+
+  }
+
+  state.year = year;
+
+  state.month = month;
+
   const now = new Date();
-  const todayKey = fmtDate(now.getFullYear(),now.getMonth(),now.getDate());
-  state.selectedDate = (now.getFullYear()===year && now.getMonth()===month) ? todayKey : fmtDate(year,month,1);
+
+  const todayKey = fmtDate(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+
+  /*
+   * 今日なら今日を選択
+   * それ以外はその月の1日
+   */
+  state.selectedDate =
+    (
+      now.getFullYear() === year &&
+      now.getMonth() === month
+    )
+      ? todayKey
+      : fmtDate(year,month,1);
+
+
+  daysRef =
+    db.ref(
+      'months/' +
+      monthKey(year,month) +
+      '/days'
+    );
+
 
   let firstCallback = true;
-  daysRef = db.ref('months/'+monthKey(year,month)+'/days');
-  daysRef.on('value', snapshot=>{
-    const rawDays = snapshot.val() || {};
-    const days = {};
-    Object.keys(rawDays).forEach(k=>{ days[k] = normalizeDay(rawDays[k]); });
 
-    if(firstCallback){
-      firstCallback = false;
-      state.dayData = days;
-      renderCalendar();
-      renderFocusCard();
-      showLoadingOverlay(false);
-      if(Object.keys(rawDays).length === 0){
-        // register the month so it appears in the dropdown even before any edits
-        db.ref('months/'+monthKey(year,month)+'/meta').set({createdAt:Date.now()}).catch(()=>{});
+
+  /*
+   * Firebaseリアルタイム監視
+   */
+  daysRef.on(
+    'value',
+    snapshot => {
+
+      const rawDays =
+        snapshot.val() || {};
+
+      const days = {};
+
+      Object.keys(rawDays).forEach(k => {
+
+        days[k] =
+          normalizeDay(rawDays[k]);
+
+      });
+
+
+      /*
+       * 初回読み込み
+       */
+      if(firstCallback){
+
+        firstCallback = false;
+
+        state.dayData = days;
+
+        renderCalendar();
+
+        renderFocusCard();
+
+        showLoadingOverlay(false);
+
+        if(Object.keys(rawDays).length === 0){
+
+          db.ref(
+            'months/' +
+            monthKey(year,month) +
+            '/meta'
+          ).set({
+            createdAt:Date.now()
+          }).catch(e => {
+
+            console.warn(
+              'month meta save error:',
+              e
+            );
+
+          });
+
+        }
+
+        refreshMonthSelect();
+
+        return;
+
       }
-      refreshMonthSelect();
-      return;
+
+
+      /*
+       * ------------------------------------------------------
+       * ここが重要
+       *
+       * Firebaseからリアルタイムで古いデータが戻ってきても、
+       * 現在保存待ちのデータは上書きしない。
+       * ------------------------------------------------------
+       */
+
+      pendingSaves.forEach(key => {
+
+        if(
+          Object.prototype.hasOwnProperty.call(
+            state.dayData,
+            key
+          )
+        ){
+
+          days[key] =
+            state.dayData[key];
+
+        }
+
+      });
+
+
+      /*
+       * 現在入力中の内容も守る
+       */
+      if(isEditingNow()){
+
+        const currentKey =
+          getEditingDateKey();
+
+        if(
+          currentKey &&
+          state.dayData[currentKey]
+        ){
+
+          days[currentKey] =
+            state.dayData[currentKey];
+
+        }
+
+      }
+
+
+      state.dayData = days;
+
+      renderCalendar();
+
+      renderFocusCard();
+
+    },
+
+    err => {
+
+      showLoadingOverlay(false);
+
+      setStatus('⚠ 接続エラー');
+
+      console.error(
+        'Firebase read error:',
+        err
+      );
+
     }
 
-    // Merge day-by-day instead of replacing the whole month at once. A day is
-    // only skipped (kept as-is locally) while it still has an unsent debounce
-    // timer, a save currently in flight, or the person's cursor is inside it -
-    // every other day always takes the fresh server value. This means a stuck
-    // or slow-to-resolve day can never block the rest of the month from
-    // syncing, and there is no fragile "does this look identical" comparison
-    // that can get permanently stuck.
-    let changed = false;
-    Object.keys(days).forEach(k=>{
-      if(saveTimers[k] || inFlightSaves[k] || isEditingDay(k)) return;
-      state.dayData[k] = days[k];
-      changed = true;
-    });
-    if(changed){
-      renderCalendar();
-      renderFocusCard();
-    }
-  }, err=>{
-    showLoadingOverlay(false);
-    setStatus('⚠ 接続エラー');
-    console.error(err);
-  });
+  );
+
 }
+
+
+/* ============================================================
+   現在編集している日付を取得
+   ============================================================ */
+
+function getEditingDateKey(){
+
+  const active =
+    document.activeElement;
+
+  if(!active) return null;
+
+  const cell =
+    active.closest &&
+    active.closest('.cell[data-date]');
+
+  if(cell){
+
+    return cell.dataset.date;
+
+  }
+
+  /*
+   * focus card内の編集
+   */
+  if(
+    active.closest &&
+    active.closest('#focusCard')
+  ){
+
+    return state.selectedDate;
+
+  }
+
+  return null;
+
+}
+
+
+/* ============================================================
+   保存予約
+   ============================================================ */
 
 function scheduleSave(dateKey){
+
+  if(!db || !daysRef){
+
+    setStatus('⚠ Firebase未設定');
+
+    return;
+
+  }
+
+
   setStatus('入力中…');
-  clearTimeout(saveTimers[dateKey]);
-  saveTimers[dateKey] = setTimeout(()=>saveDay(dateKey), 900);
+
+
+  pendingSaves.add(dateKey);
+
+
+  if(!saveVersions[dateKey]){
+
+    saveVersions[dateKey] = 0;
+
+  }
+
+  saveVersions[dateKey]++;
+
+
+  clearTimeout(
+    saveTimers[dateKey]
+  );
+
+
+  /*
+   * 400ms入力が止まったら保存
+   */
+  saveTimers[dateKey] =
+    setTimeout(
+      () => {
+
+        saveDay(dateKey);
+
+      },
+      400
+    );
+
 }
+
+
+/* ============================================================
+   保存本体
+   ============================================================ */
 
 async function saveDay(dateKey){
-  clearTimeout(saveTimers[dateKey]);
+
+  clearTimeout(
+    saveTimers[dateKey]
+  );
+
   delete saveTimers[dateKey];
-  if(!db || !daysRef){ setStatus('⚠ Firebase未設定'); return; }
-  inFlightSaves[dateKey] = true;
-  setStatus('保存中…');
-  try{
-    // only this single day's node is written - edits to other days
-    // (from another device/tab) are never touched or overwritten
-    await daysRef.child(dateKey).set(state.dayData[dateKey]);
-    const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
-    setStatus('✓ 保存済み ' + t);
-    refreshMonthSelect();
-  }catch(e){
-    setStatus('⚠ 保存に失敗しました');
-    console.error(e);
-  }finally{
-    delete inFlightSaves[dateKey];
+
+
+  if(!db || !daysRef){
+
+    setStatus('⚠ Firebase未設定');
+
+    return;
+
   }
+
+
+  const data =
+    state.dayData[dateKey];
+
+  if(!data){
+
+    pendingSaves.delete(dateKey);
+
+    return;
+
+  }
+
+
+  /*
+   * すでに保存中なら、
+   * 今回は「保存待ち」にして終了。
+   *
+   * 現在の保存が終わった後に
+   * 最新データをもう一度保存する。
+   */
+  if(saveInFlight[dateKey]){
+
+    pendingSaves.add(dateKey);
+
+    return;
+
+  }
+
+
+  const versionAtStart =
+    saveVersions[dateKey] || 0;
+
+
+  /*
+   * Firebaseへ送るデータをコピー
+   *
+   * 参照のまま送らないことで、
+   * 保存途中にstateが変更されても
+   * 今回の保存データは固定される。
+   */
+  const snapshotData =
+    JSON.parse(
+      JSON.stringify(data)
+    );
+
+
+  saveInFlight[dateKey] = true;
+
+  setStatus('保存中…');
+
+
+  try{
+
+    await daysRef
+      .child(dateKey)
+      .set(snapshotData);
+
+
+    /*
+     * 保存中に入力があったか確認
+     */
+    const latestVersion =
+      saveVersions[dateKey] || 0;
+
+
+    if(
+      versionAtStart !== latestVersion
+    ){
+
+      /*
+       * まだ新しい入力がある。
+       * 最新stateをもう一度保存する。
+       */
+      pendingSaves.add(dateKey);
+
+      saveInFlight[dateKey] = false;
+
+      saveDay(dateKey);
+
+      return;
+
+    }
+
+
+    /*
+     * 最新状態まで保存完了
+     */
+    pendingSaves.delete(dateKey);
+
+    saveInFlight[dateKey] = false;
+
+
+    const t =
+      new Date().toLocaleTimeString(
+        'ja-JP',
+        {
+          hour:'2-digit',
+          minute:'2-digit'
+        }
+      );
+
+
+    setStatus(
+      '✓ 保存済み ' + t
+    );
+
+
+  }catch(e){
+
+    saveInFlight[dateKey] = false;
+
+    pendingSaves.add(dateKey);
+
+    setStatus(
+      '⚠ 保存に失敗しました'
+    );
+
+    console.error(
+      'Firebase save error:',
+      e
+    );
+
+  }
+
 }
+
+
+/* ============================================================
+   未保存データを全部保存
+   ============================================================ */
 
 async function flushPendingSaves(){
-  const keys = Object.keys(saveTimers);
-  if(keys.length === 0) return;
-  await Promise.all(keys.map(k=>saveDay(k)));
+
+  /*
+   * タイマーを即実行
+   */
+  const keys =
+    Object.keys(saveTimers);
+
+  keys.forEach(key => {
+
+    clearTimeout(
+      saveTimers[key]
+    );
+
+    delete saveTimers[key];
+
+  });
+
+
+  /*
+   * 保存待ちのデータを取得
+   */
+  const pendingKeys =
+    [...pendingSaves];
+
+
+  if(pendingKeys.length === 0){
+
+    return;
+
+  }
+
+
+  /*
+   * 各日付を保存
+   */
+  await Promise.all(
+    pendingKeys.map(
+      key => saveDay(key)
+    )
+  );
+
+
+  /*
+   * 保存中だった場合、
+   * 完了するまで少し待つ。
+   */
+  let safety = 0;
+
+  while(
+    Object.keys(saveInFlight).length > 0 &&
+    safety < 50
+  ){
+
+    await new Promise(
+      resolve =>
+        setTimeout(resolve,100)
+    );
+
+    safety++;
+
+  }
+
 }
+
+
+/* ============================================================
+   月選択
+   ============================================================ */
 
 async function refreshMonthSelect(){
+
   if(!db) return;
-  const sel = document.getElementById('monthSelect');
+
+  const sel =
+    document.getElementById(
+      'monthSelect'
+    );
+
   try{
-    const snap = await db.ref('months').once('value');
-    const val = snap.val() || {};
-    const months = Object.keys(val).sort();
-    const cur = monthKey(state.year, state.month);
-    if(!months.includes(cur)) months.push(cur);
+
+    const snap =
+      await db
+        .ref('months')
+        .once('value');
+
+    const val =
+      snap.val() || {};
+
+    const months =
+      Object.keys(val)
+        .sort();
+
+    const cur =
+      monthKey(
+        state.year,
+        state.month
+      );
+
+
+    if(!months.includes(cur)){
+
+      months.push(cur);
+
+    }
+
+
     months.sort();
-    sel.innerHTML = months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m.replace('-','年 ')}月</option>`).join('');
-  }catch(e){ /* ignore */ }
+
+
+    sel.innerHTML =
+      months.map(m => {
+
+        return `
+          <option
+            value="${m}"
+            ${m===cur?'selected':''}
+          >
+            ${m.replace('-','年 ')}月
+          </option>
+        `;
+
+      }).join('');
+
+
+  }catch(e){
+
+    console.error(
+      'month select error:',
+      e
+    );
+
+  }
+
 }
+
+
+/* ============================================================
+   Loading
+   ============================================================ */
 
 function showLoadingOverlay(show){
-  let ov = document.getElementById('loadingOverlay');
+
+  let ov =
+    document.getElementById(
+      'loadingOverlay'
+    );
+
+
   if(show){
+
     if(!ov){
-      ov = document.createElement('div');
-      ov.id = 'loadingOverlay';
-      ov.className = 'loading-overlay';
-      ov.textContent = '読み込み中…';
-      document.getElementById('exportRoot').appendChild(ov);
+
+      ov =
+        document.createElement(
+          'div'
+        );
+
+      ov.id =
+        'loadingOverlay';
+
+      ov.className =
+        'loading-overlay';
+
+      ov.textContent =
+        '読み込み中…';
+
+      document
+        .getElementById('exportRoot')
+        .appendChild(ov);
+
     }
-  }else if(ov){
-    ov.remove();
+
   }
+
+  else if(ov){
+
+    ov.remove();
+
+  }
+
 }
 
-/* ---------------- rendering: calendar ---------------- */
+
+/* ============================================================
+   曜日
+   ============================================================ */
+
 function renderWeekrow(){
-  const wr = document.getElementById('weekrow');
-  wr.innerHTML = WEEKDAY_JA.map((d,i)=>{
-    const cls = i===0?'sun':(i===6?'sat':'');
-    return `<div class="${cls}">${d}</div>`;
-  }).join('');
+
+  const wr =
+    document.getElementById(
+      'weekrow'
+    );
+
+  wr.innerHTML =
+    WEEKDAY_JA
+      .map((d,i)=>{
+
+        const cls =
+          i===0
+            ? 'sun'
+            : i===6
+              ? 'sat'
+              : '';
+
+        return `
+          <div class="${cls}">
+            ${d}
+          </div>
+        `;
+
+      })
+      .join('');
+
 }
+
+
+/* ============================================================
+   練習タイプ
+   ============================================================ */
 
 function typeOptionsHtml(selected){
-  return Object.keys(TYPE_LABEL).map(v=>`<option value="${v}"${v===selected?' selected':''}>${TYPE_LABEL[v]}</option>`).join('');
+
+  return Object.keys(TYPE_LABEL)
+    .map(v => {
+
+      return `
+        <option
+          value="${v}"
+          ${v===selected?'selected':''}
+        >
+          ${TYPE_LABEL[v]}
+        </option>
+      `;
+
+    })
+    .join('');
+
 }
+
+
+/* ============================================================
+   カレンダー描画
+   ============================================================ */
 
 function renderCalendar(){
-  const {year,month} = state;
-  document.getElementById('monthLabel').textContent = `${year}年 ${month+1}月`;
-  document.getElementById('titleText').textContent = `${year}年${String(month+1).padStart(2,'0')}月 RUNNING MENU`;
 
-  const firstDow = new Date(year,month,1).getDay();
-  const daysInMonth = new Date(year,month+1,0).getDate();
-  const totalCells = Math.ceil((firstDow+daysInMonth)/7)*7;
-  const now = new Date();
-  const todayKey = fmtDate(now.getFullYear(),now.getMonth(),now.getDate());
+  const {
+    year,
+    month
+  } = state;
 
-  const grid = document.getElementById('grid');
+
+  document.getElementById(
+    'monthLabel'
+  ).textContent =
+    `${year}年 ${month+1}月`;
+
+
+  document.getElementById(
+    'titleText'
+  ).textContent =
+    `${year}年${String(month+1).padStart(2,'0')}月 RUNNING MENU`;
+
+
+  const firstDow =
+    new Date(
+      year,
+      month,
+      1
+    ).getDay();
+
+
+  const daysInMonth =
+    new Date(
+      year,
+      month+1,
+      0
+    ).getDate();
+
+
+  const totalCells =
+    Math.ceil(
+      (firstDow + daysInMonth) / 7
+    ) * 7;
+
+
+  const now =
+    new Date();
+
+
+  const todayKey =
+    fmtDate(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+
+  const grid =
+    document.getElementById(
+      'grid'
+    );
+
+
   grid.innerHTML = '';
 
-  for(let i=0;i<totalCells;i++){
-    const dayNum = i - firstDow + 1;
-    if(dayNum < 1 || dayNum > daysInMonth){
-      const pad = document.createElement('div');
-      pad.className = 'cell pad';
+
+  for(
+    let i=0;
+    i<totalCells;
+    i++
+  ){
+
+    const dayNum =
+      i - firstDow + 1;
+
+
+    if(
+      dayNum < 1 ||
+      dayNum > daysInMonth
+    ){
+
+      const pad =
+        document.createElement(
+          'div'
+        );
+
+      pad.className =
+        'cell pad';
+
       grid.appendChild(pad);
+
       continue;
+
     }
-    const dow = (firstDow + dayNum - 1) % 7;
-    const key = fmtDate(year,month,dayNum);
-    const data = ensureDay(key);
-    const s0 = data.sessions[0];
-    const isToday = key === todayKey;
-    const isSelected = key === state.selectedDate;
 
-    const cell = document.createElement('div');
-    cell.className = 'cell'
-      + (dow===0?' sun':dow===6?' sat':'')
-      + (isToday?' today':'')
-      + (isSelected?' selected':'')
-      + (data.done?' done':'');
-    cell.dataset.date = key;
 
-    const wtext = data.weather ? data.weather.text : '';
-    const wtemp = data.weather && data.weather.temp ? data.weather.temp : '';
-    const multiBadge = data.sessions.length > 1 ? `<span class="multi-badge">×${data.sessions.length}</span>` : '';
+    const dow =
+      (firstDow + dayNum - 1) % 7;
+
+
+    const key =
+      fmtDate(
+        year,
+        month,
+        dayNum
+      );
+
+
+    const data =
+      ensureDay(key);
+
+
+    const s0 =
+      data.sessions[0];
+
+
+    const isToday =
+      key === todayKey;
+
+
+    const isSelected =
+      key === state.selectedDate;
+
+
+    const cell =
+      document.createElement(
+        'div'
+      );
+
+
+    cell.className =
+      'cell' +
+      (
+        dow===0
+          ? ' sun'
+          : dow===6
+            ? ' sat'
+            : ''
+      ) +
+      (
+        isToday
+          ? ' today'
+          : ''
+      ) +
+      (
+        isSelected
+          ? ' selected'
+          : ''
+      ) +
+      (
+        data.done
+          ? ' done'
+          : ''
+      );
+
+
+    cell.dataset.date =
+      key;
+
+
+    const wtext =
+      data.weather
+        ? data.weather.text
+        : '';
+
+
+    const wtemp =
+      data.weather
+        ? data.weather.temp
+        : '';
+
+
+    const multiBadge =
+      data.sessions.length > 1
+        ? `
+          <span class="multi-badge">
+            ×${data.sessions.length}
+          </span>
+        `
+        : '';
+
 
     cell.innerHTML = `
+
       <div class="cell-top">
+
         <div class="cell-top-left">
-          <label class="chk"><input type="checkbox" data-role="done" ${data.done?'checked':''}></label>
-          <div class="bib">${dayNum}</div>
-          <span class="dow-label">${WEEKDAY_JA[dow]}曜</span>
+
+          <label class="chk">
+
+            <input
+              type="checkbox"
+              data-role="done"
+              ${data.done?'checked':''}
+            >
+
+          </label>
+
+          <div class="bib">
+            ${dayNum}
+          </div>
+
+          <span class="dow-label">
+            ${WEEKDAY_JA[dow]}曜
+          </span>
+
           ${multiBadge}
+
         </div>
+
         <div style="text-align:right;">
-          <div class="wbadge" data-role="weather">${wtext || '－'}</div>
-          <div class="wtemp">${wtemp}</div>
+
+          <div
+            class="wbadge"
+            data-role="weather"
+          >
+            ${wtext || '－'}
+          </div>
+
+          <div class="wtemp">
+            ${wtemp}
+          </div>
+
         </div>
+
       </div>
-      <select class="type-pill ${TYPE_CLASS[s0.type]||''}" data-role="type">${typeOptionsHtml(s0.type)}</select>
-      <div class="field menu" contenteditable="true" data-placeholder="メニュー" data-role="menu">${s0.menu||''}</div>
+
+
+      <select
+        class="type-pill ${TYPE_CLASS[s0.type]||''}"
+        data-role="type"
+      >
+        ${typeOptionsHtml(s0.type)}
+      </select>
+
+
+      <div
+        class="field menu"
+        contenteditable="true"
+        data-placeholder="メニュー"
+        data-role="menu"
+      >${escapeHtml(s0.menu || '')}</div>
+
+
       <div class="dp-row">
-        <div class="field dist" contenteditable="true" data-placeholder="0 km" data-role="distance">${s0.distance||''}</div>
-        <div class="field pace" contenteditable="true" data-placeholder="ペース" data-role="pace">${s0.pace||''}</div>
+
+        <div
+          class="field dist"
+          contenteditable="true"
+          data-placeholder="0 km"
+          data-role="distance"
+        >${escapeHtml(s0.distance || '')}</div>
+
+        <div
+          class="field pace"
+          contenteditable="true"
+          data-placeholder="ペース"
+          data-role="pace"
+        >${escapeHtml(s0.pace || '')}</div>
+
       </div>
-      <div class="memo" contenteditable="true" data-placeholder="メモ" data-role="memo">${data.memo||''}</div>
+
+
+      <div
+        class="memo"
+        contenteditable="true"
+        data-placeholder="メモ"
+        data-role="memo"
+      >${escapeHtml(data.memo || '')}</div>
+
     `;
+
+
     grid.appendChild(cell);
+
   }
+
 
   attachCellEvents();
+
   updateStats();
-  if(Object.keys(state.forecast).length) applyForecastToCalendar();
+
+
+  if(
+    Object.keys(state.forecast).length
+  ){
+
+    applyForecastToCalendar();
+
+  }
+
 }
+
+
+/* ============================================================
+   HTMLエスケープ
+   ============================================================ */
+
+function escapeHtml(value){
+
+  return String(value)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#039;');
+
+}
+
+
+/* ============================================================
+   カレンダーイベント
+   ============================================================ */
 
 function attachCellEvents(){
-  document.querySelectorAll('.cell[data-date]').forEach(cell=>{
-    const key = cell.dataset.date;
-    const data = ensureDay(key);
 
-    cell.addEventListener('click', ()=>{ selectDate(key); });
+  document
+    .querySelectorAll(
+      '.cell[data-date]'
+    )
+    .forEach(cell => {
 
-    cell.querySelector('[data-role="menu"]').addEventListener('input', e=>{
-      data.sessions[0].menu = e.target.textContent.trim(); scheduleSave(key);
-      if(state.selectedDate===key) renderFocusSessions();
+      const key =
+        cell.dataset.date;
+
+
+      const data =
+        ensureDay(key);
+
+
+      cell.addEventListener(
+        'click',
+        () => {
+
+          selectDate(key);
+
+        }
+      );
+
+
+      const menuEl =
+        cell.querySelector(
+          '[data-role="menu"]'
+        );
+
+
+      menuEl.addEventListener(
+        'input',
+        e => {
+
+          data.sessions[0].menu =
+            e.target.textContent.trim();
+
+          scheduleSave(key);
+
+
+          if(
+            state.selectedDate === key
+          ){
+
+            renderFocusSessions();
+
+          }
+
+        }
+      );
+
+
+      const distEl =
+        cell.querySelector(
+          '[data-role="distance"]'
+        );
+
+
+      distEl.addEventListener(
+        'input',
+        e => {
+
+          data.sessions[0].distance =
+            e.target.textContent.trim();
+
+          updateStats();
+
+          scheduleSave(key);
+
+
+          if(
+            state.selectedDate === key
+          ){
+
+            renderFocusSessions();
+
+          }
+
+        }
+      );
+
+
+      const paceEl =
+        cell.querySelector(
+          '[data-role="pace"]'
+        );
+
+
+      paceEl.addEventListener(
+        'input',
+        e => {
+
+          data.sessions[0].pace =
+            e.target.textContent.trim();
+
+          scheduleSave(key);
+
+
+          if(
+            state.selectedDate === key
+          ){
+
+            renderFocusSessions();
+
+          }
+
+        }
+      );
+
+
+      const memoEl =
+        cell.querySelector(
+          '[data-role="memo"]'
+        );
+
+
+      memoEl.addEventListener(
+        'input',
+        e => {
+
+          data.memo =
+            e.target.textContent.trim();
+
+          scheduleSave(key);
+
+
+          if(
+            state.selectedDate === key
+          ){
+
+            const fm =
+              document.getElementById(
+                'focusMemo'
+              );
+
+            if(
+              document.activeElement !== fm
+            ){
+
+              fm.textContent =
+                data.memo;
+
+            }
+
+          }
+
+        }
+      );
+
+
+      const typeSel =
+        cell.querySelector(
+          '[data-role="type"]'
+        );
+
+
+      typeSel.addEventListener(
+        'click',
+        e => {
+
+          e.stopPropagation();
+
+        }
+      );
+
+
+      typeSel.addEventListener(
+        'change',
+        e => {
+
+          data.sessions[0].type =
+            e.target.value;
+
+
+          typeSel.className =
+            'type-pill ' +
+            (
+              TYPE_CLASS[
+                data.sessions[0].type
+              ] || ''
+            );
+
+
+          scheduleSave(key);
+
+
+          if(
+            state.selectedDate === key
+          ){
+
+            renderFocusSessions();
+
+          }
+
+        }
+      );
+
+
+      const weatherEl =
+        cell.querySelector(
+          '[data-role="weather"]'
+        );
+
+
+      weatherEl.addEventListener(
+        'click',
+        e => {
+
+          e.stopPropagation();
+
+
+          const cur =
+            data.weather
+              ? data.weather.text
+              : '';
+
+
+          let idx =
+            WEATHER_CYCLE.indexOf(cur);
+
+
+          idx =
+            (idx + 1) %
+            WEATHER_CYCLE.length;
+
+
+          const next =
+            WEATHER_CYCLE[idx];
+
+
+          data.weather =
+            next
+              ? {
+                  text:next,
+                  temp:
+                    (
+                      data.weather &&
+                      data.weather.temp
+                    ) || '',
+                  auto:false
+                }
+              : null;
+
+
+          e.target.textContent =
+            next || '－';
+
+
+          cell.querySelector(
+            '.wtemp'
+          ).textContent =
+            data.weather
+              ? (
+                  data.weather.temp ||
+                  ''
+                )
+              : '';
+
+
+          scheduleSave(key);
+
+
+          if(
+            state.selectedDate === key
+          ){
+
+            document.getElementById(
+              'focusWEmoji'
+            ).textContent =
+              data.weather
+                ? data.weather.text
+                : '－';
+
+
+            document.getElementById(
+              'focusWTemp'
+            ).textContent =
+              data.weather &&
+              data.weather.temp
+                ? data.weather.temp
+                : '';
+
+          }
+
+        }
+      );
+
+
+      const doneChk =
+        cell.querySelector(
+          '[data-role="done"]'
+        );
+
+
+      doneChk.addEventListener(
+        'click',
+        e => {
+
+          e.stopPropagation();
+
+        }
+      );
+
+
+      doneChk.addEventListener(
+        'change',
+        e => {
+
+          data.done =
+            e.target.checked;
+
+
+          cell.classList.toggle(
+            'done',
+            data.done
+          );
+
+
+          scheduleSave(key);
+
+          updateStats();
+
+
+          if(
+            state.selectedDate === key
+          ){
+
+            document.getElementById(
+              'focusDoneCheckbox'
+            ).checked =
+              data.done;
+
+
+            document.getElementById(
+              'focusDoneWrap'
+            ).classList.toggle(
+              'done',
+              data.done
+            );
+
+
+            document.getElementById(
+              'focusDoneLabel'
+            ).textContent =
+              data.done
+                ? '実施済み ✓'
+                : '未実施';
+
+          }
+
+        }
+      );
+
     });
-    cell.querySelector('[data-role="distance"]').addEventListener('input', e=>{
-      data.sessions[0].distance = e.target.textContent.trim(); updateStats(); scheduleSave(key);
-      if(state.selectedDate===key) renderFocusSessions();
-    });
-    cell.querySelector('[data-role="pace"]').addEventListener('input', e=>{
-      data.sessions[0].pace = e.target.textContent.trim(); scheduleSave(key);
-      if(state.selectedDate===key) renderFocusSessions();
-    });
-    const memoEl = cell.querySelector('[data-role="memo"]');
-    memoEl.addEventListener('input', e=>{
-      data.memo = e.target.textContent.trim(); scheduleSave(key);
-      if(state.selectedDate===key){
-        const fm = document.getElementById('focusMemo');
-        if(document.activeElement !== fm) fm.textContent = data.memo;
-      }
-    });
-    const typeSel = cell.querySelector('[data-role="type"]');
-    typeSel.addEventListener('click', e=> e.stopPropagation());
-    typeSel.addEventListener('change', e=>{
-      data.sessions[0].type = e.target.value;
-      typeSel.className = 'type-pill ' + (TYPE_CLASS[data.sessions[0].type]||'');
-      scheduleSave(key);
-      if(state.selectedDate===key) renderFocusSessions();
-    });
-    cell.querySelector('[data-role="weather"]').addEventListener('click', e=>{
-      e.stopPropagation();
-      const cur = data.weather ? data.weather.text : '';
-      let idx = WEATHER_CYCLE.indexOf(cur);
-      idx = (idx+1) % WEATHER_CYCLE.length;
-      const next = WEATHER_CYCLE[idx];
-      data.weather = next ? {text:next, temp:(data.weather&&data.weather.temp)||'', auto:false} : null;
-      e.target.textContent = next || '－';
-      cell.querySelector('.wtemp').textContent = data.weather ? (data.weather.temp||'') : '';
-      scheduleSave(key);
-      if(state.selectedDate===key){
-        document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
-        document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
-      }
-    });
-    const doneChk = cell.querySelector('[data-role="done"]');
-    doneChk.addEventListener('click', e=> e.stopPropagation());
-    doneChk.addEventListener('change', e=>{
-      data.done = e.target.checked;
-      cell.classList.toggle('done', data.done);
-      scheduleSave(key); updateStats();
-      if(state.selectedDate===key){
-        document.getElementById('focusDoneCheckbox').checked = data.done;
-        document.getElementById('focusDoneWrap').classList.toggle('done', data.done);
-        document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
-      }
-    });
-  });
+
 }
+
+
+/* ============================================================
+   日付選択
+   ============================================================ */
 
 function selectDate(key){
-  if(state.selectedDate === key) return;
-  const prevKey = state.selectedDate;
-  state.selectedDate = key;
-  const prevCell = document.querySelector(`.cell[data-date="${prevKey}"]`);
-  if(prevCell) prevCell.classList.remove('selected');
-  const newCell = document.querySelector(`.cell[data-date="${key}"]`);
-  if(newCell) newCell.classList.add('selected');
+
+  if(
+    state.selectedDate === key
+  ){
+
+    return;
+
+  }
+
+
+  const prevKey =
+    state.selectedDate;
+
+
+  state.selectedDate =
+    key;
+
+
+  const prevCell =
+    document.querySelector(
+      `.cell[data-date="${prevKey}"]`
+    );
+
+
+  if(prevCell){
+
+    prevCell.classList.remove(
+      'selected'
+    );
+
+  }
+
+
+  const newCell =
+    document.querySelector(
+      `.cell[data-date="${key}"]`
+    );
+
+
+  if(newCell){
+
+    newCell.classList.add(
+      'selected'
+    );
+
+  }
+
+
   renderFocusCard();
+
 }
+
+
+/* ============================================================
+   統計
+   ============================================================ */
 
 function updateStats(){
-  let total = 0, done = 0;
-  Object.values(state.dayData).forEach(d=>{
-    (d.sessions||[]).forEach(s=>{
-      const n = parseFloat((s.distance||'').replace(/[^0-9.]/g,''));
-      if(!isNaN(n) && n>0) total += n;
-    });
-    if(d.done) done++;
+
+  let total = 0;
+
+  let done = 0;
+
+
+  Object.values(
+    state.dayData
+  ).forEach(d => {
+
+    (d.sessions || [])
+      .forEach(s => {
+
+        const n =
+          parseFloat(
+            String(
+              s.distance || ''
+            ).replace(
+              /[^0-9.]/g,
+              ''
+            )
+          );
+
+
+        if(
+          !isNaN(n) &&
+          n > 0
+        ){
+
+          total += n;
+
+        }
+
+      });
+
+
+    if(d.done){
+
+      done++;
+
+    }
+
   });
-  document.getElementById('totalDist').innerHTML = total.toFixed(1).replace(/\.0$/,'') + '<span>km</span>';
-  document.getElementById('totalDays').innerHTML = done + '<span>日</span>';
+
+
+  document.getElementById(
+    'totalDist'
+  ).innerHTML =
+    total
+      .toFixed(1)
+      .replace(/\.0$/,'') +
+    '<span>km</span>';
+
+
+  document.getElementById(
+    'totalDays'
+  ).innerHTML =
+    done +
+    '<span>日</span>';
+
 }
 
-/* ---------------- focus card (large selected-day view) ---------------- */
+
+/* ============================================================
+   フォーカスカード
+   ============================================================ */
+
 function renderFocusCard(){
-  const key = state.selectedDate;
+
+  const key =
+    state.selectedDate;
+
+
   if(!key) return;
-  const data = ensureDay(key);
-  const [y,m,d] = key.split('-').map(Number);
-  const dt = new Date(y, m-1, d);
 
-  document.getElementById('focusBib').textContent = `${m}/${d}`;
-  document.getElementById('focusDow').textContent = WEEKDAY_JA[dt.getDay()] + '曜日';
 
-  const now = new Date();
-  const todayKey = fmtDate(now.getFullYear(), now.getMonth(), now.getDate());
-  document.getElementById('focusEyebrow').textContent = (key === todayKey) ? "TODAY'S MENU" : "SELECT DAY";
+  const data =
+    ensureDay(key);
 
-  const cb = document.getElementById('focusDoneCheckbox');
-  cb.checked = !!data.done;
-  document.getElementById('focusDoneWrap').classList.toggle('done', !!data.done);
-  document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
 
-  document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
-  document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
+  const [
+    y,
+    m,
+    d
+  ] =
+    key
+      .split('-')
+      .map(Number);
 
-  const memoEl = document.getElementById('focusMemo');
-  if(document.activeElement !== memoEl) memoEl.textContent = data.memo || '';
+
+  const dt =
+    new Date(
+      y,
+      m-1,
+      d
+    );
+
+
+  document.getElementById(
+    'focusBib'
+  ).textContent =
+    `${m}/${d}`;
+
+
+  document.getElementById(
+    'focusDow'
+  ).textContent =
+    WEEKDAY_JA[dt.getDay()] +
+    '曜日';
+
+
+  const now =
+    new Date();
+
+
+  const todayKey =
+    fmtDate(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+
+  document.getElementById(
+    'focusEyebrow'
+  ).textContent =
+    key === todayKey
+      ? "TODAY'S MENU"
+      : "選択した日のメニュー";
+
+
+  const cb =
+    document.getElementById(
+      'focusDoneCheckbox'
+    );
+
+
+  cb.checked =
+    !!data.done;
+
+
+  document.getElementById(
+    'focusDoneWrap'
+  ).classList.toggle(
+    'done',
+    !!data.done
+  );
+
+
+  document.getElementById(
+    'focusDoneLabel'
+  ).textContent =
+    data.done
+      ? '実施済み ✓'
+      : '未実施';
+
+
+  document.getElementById(
+    'focusWEmoji'
+  ).textContent =
+    data.weather
+      ? data.weather.text
+      : '－';
+
+
+  document.getElementById(
+    'focusWTemp'
+  ).textContent =
+    data.weather &&
+    data.weather.temp
+      ? data.weather.temp
+      : '';
+
+
+  const memoEl =
+    document.getElementById(
+      'focusMemo'
+    );
+
+
+  if(
+    document.activeElement !== memoEl
+  ){
+
+    memoEl.textContent =
+      data.memo || '';
+
+  }
+
 
   renderFocusSessions();
+
 }
+
+
+/* ============================================================
+   フォーカスカード内セッション
+   ============================================================ */
 
 function renderFocusSessions(){
-  const key = state.selectedDate;
-  if(!key) return;
-  const data = ensureDay(key);
-  const wrap = document.getElementById('focusSessions');
-  wrap.innerHTML = data.sessions.map((s, idx)=>`
-    <div class="session-row" data-idx="${idx}">
-      <div class="session-num">${idx+1}本目</div>
-      <div class="session-fields">
-        <div class="session-field-group type">
-          <div class="session-label">練習内容</div>
-          <select class="type-pill ${TYPE_CLASS[s.type]||''}" data-idx="${idx}" data-role="s-type">${typeOptionsHtml(s.type)}</select>
-        </div>
-        <div class="session-field-group menu">
-          <div class="session-label">メニュー</div>
-          <div class="session-input" contenteditable="true" data-idx="${idx}" data-role="s-menu" data-placeholder="例: 20km jog + 流し4本">${s.menu||''}</div>
-        </div>
-        <div class="session-field-group dist">
-          <div class="session-label">距離</div>
-          <div class="session-input dist" contenteditable="true" data-idx="${idx}" data-role="s-distance" data-placeholder="0 km">${s.distance||''}</div>
-        </div>
-        <div class="session-field-group pace">
-          <div class="session-label">目標ペース</div>
-          <div class="session-input pace" contenteditable="true" data-idx="${idx}" data-role="s-pace" data-placeholder="5'30&quot;">${s.pace||''}</div>
-        </div>
-      </div>
-      ${data.sessions.length>1 ? `<button class="session-remove" data-idx="${idx}" title="この練習を削除">✕</button>` : ''}
-    </div>
-  `).join('');
 
-  wrap.querySelectorAll('[data-role="s-type"]').forEach(el=>{
-    el.addEventListener('click', e=>e.stopPropagation());
-    el.addEventListener('change', e=>{
-      const i = +e.target.dataset.idx;
-      data.sessions[i].type = e.target.value;
-      e.target.className = 'type-pill ' + (TYPE_CLASS[data.sessions[i].type]||'');
-      scheduleSave(key);
-      if(i===0) syncCellFromData(key);
+  const key =
+    state.selectedDate;
+
+
+  if(!key) return;
+
+
+  const data =
+    ensureDay(key);
+
+
+  const wrap =
+    document.getElementById(
+      'focusSessions'
+    );
+
+
+  wrap.innerHTML =
+    data.sessions
+      .map((s,idx) => {
+
+        return `
+
+          <div
+            class="session-row"
+            data-idx="${idx}"
+          >
+
+            <div class="session-num">
+              ${idx+1}本目
+            </div>
+
+
+            <div class="session-fields">
+
+
+              <div class="session-field-group type">
+
+                <div class="session-label">
+                  練習内容
+                </div>
+
+                <select
+                  class="type-pill ${TYPE_CLASS[s.type]||''}"
+                  data-idx="${idx}"
+                  data-role="s-type"
+                >
+                  ${typeOptionsHtml(s.type)}
+                </select>
+
+              </div>
+
+
+              <div class="session-field-group menu">
+
+                <div class="session-label">
+                  メニュー
+                </div>
+
+                <div
+                  class="session-input"
+                  contenteditable="true"
+                  data-idx="${idx}"
+                  data-role="s-menu"
+                  data-placeholder="例: 20km jog + 流し4本"
+                >${escapeHtml(s.menu || '')}</div>
+
+              </div>
+
+
+              <div class="session-field-group dist">
+
+                <div class="session-label">
+                  距離
+                </div>
+
+                <div
+                  class="session-input dist"
+                  contenteditable="true"
+                  data-idx="${idx}"
+                  data-role="s-distance"
+                  data-placeholder="0 km"
+                >${escapeHtml(s.distance || '')}</div>
+
+              </div>
+
+
+              <div class="session-field-group pace">
+
+                <div class="session-label">
+                  目標ペース
+                </div>
+
+                <div
+                  class="session-input pace"
+                  contenteditable="true"
+                  data-idx="${idx}"
+                  data-role="s-pace"
+                  data-placeholder="5'30&quot;"
+                >${escapeHtml(s.pace || '')}</div>
+
+              </div>
+
+            </div>
+
+
+            ${
+              data.sessions.length > 1
+                ? `
+                  <button
+                    class="session-remove"
+                    data-idx="${idx}"
+                    title="この練習を削除"
+                  >
+                    ✕
+                  </button>
+                `
+                : ''
+            }
+
+          </div>
+
+        `;
+
+      })
+      .join('');
+
+
+  /*
+   * 練習タイプ
+   */
+  wrap
+    .querySelectorAll(
+      '[data-role="s-type"]'
+    )
+    .forEach(el => {
+
+      el.addEventListener(
+        'click',
+        e => {
+
+          e.stopPropagation();
+
+        }
+      );
+
+
+      el.addEventListener(
+        'change',
+        e => {
+
+          const i =
+            +e.target.dataset.idx;
+
+
+          data.sessions[i].type =
+            e.target.value;
+
+
+          e.target.className =
+            'type-pill ' +
+            (
+              TYPE_CLASS[
+                data.sessions[i].type
+              ] || ''
+            );
+
+
+          scheduleSave(key);
+
+
+          if(i === 0){
+
+            syncCellFromData(key);
+
+          }
+
+        }
+      );
+
     });
-  });
-  wrap.querySelectorAll('[data-role="s-menu"]').forEach(el=>{
-    el.addEventListener('input', e=>{
-      const i = +e.target.dataset.idx;
-      data.sessions[i].menu = e.target.textContent.trim();
-      scheduleSave(key);
-      if(i===0) syncCellFromData(key);
+
+
+  /*
+   * メニュー
+   */
+  wrap
+    .querySelectorAll(
+      '[data-role="s-menu"]'
+    )
+    .forEach(el => {
+
+      el.addEventListener(
+        'input',
+        e => {
+
+          const i =
+            +e.target.dataset.idx;
+
+
+          data.sessions[i].menu =
+            e.target.textContent.trim();
+
+
+          scheduleSave(key);
+
+
+          if(i === 0){
+
+            syncCellFromData(key);
+
+          }
+
+        }
+      );
+
     });
-  });
-  wrap.querySelectorAll('[data-role="s-distance"]').forEach(el=>{
-    el.addEventListener('input', e=>{
-      const i = +e.target.dataset.idx;
-      data.sessions[i].distance = e.target.textContent.trim();
-      updateStats(); scheduleSave(key);
-      if(i===0) syncCellFromData(key);
+
+
+  /*
+   * 距離
+   */
+  wrap
+    .querySelectorAll(
+      '[data-role="s-distance"]'
+    )
+    .forEach(el => {
+
+      el.addEventListener(
+        'input',
+        e => {
+
+          const i =
+            +e.target.dataset.idx;
+
+
+          data.sessions[i].distance =
+            e.target.textContent.trim();
+
+
+          updateStats();
+
+          scheduleSave(key);
+
+
+          if(i === 0){
+
+            syncCellFromData(key);
+
+          }
+
+        }
+      );
+
     });
-  });
-  wrap.querySelectorAll('[data-role="s-pace"]').forEach(el=>{
-    el.addEventListener('input', e=>{
-      const i = +e.target.dataset.idx;
-      data.sessions[i].pace = e.target.textContent.trim();
-      scheduleSave(key);
-      if(i===0) syncCellFromData(key);
+
+
+  /*
+   * ペース
+   */
+  wrap
+    .querySelectorAll(
+      '[data-role="s-pace"]'
+    )
+    .forEach(el => {
+
+      el.addEventListener(
+        'input',
+        e => {
+
+          const i =
+            +e.target.dataset.idx;
+
+
+          data.sessions[i].pace =
+            e.target.textContent.trim();
+
+
+          scheduleSave(key);
+
+
+          if(i === 0){
+
+            syncCellFromData(key);
+
+          }
+
+        }
+      );
+
     });
-  });
-  wrap.querySelectorAll('.session-remove').forEach(el=>{
-    el.addEventListener('click', e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      const i = Number(e.currentTarget.dataset.idx);
-      if(!Number.isInteger(i) || i < 0 || i >= data.sessions.length) return;
-      if(data.sessions.length <= 1) return;
-      data.sessions.splice(i,1);
-      updateStats();
+
+
+  /*
+   * セッション削除
+   */
+  wrap
+    .querySelectorAll(
+      '.session-remove'
+    )
+    .forEach(el => {
+
+      el.addEventListener(
+        'click',
+        e => {
+
+          const i =
+            +e.target.dataset.idx;
+
+
+          data.sessions.splice(
+            i,
+            1
+          );
+
+
+          /*
+           * 全部削除された場合は
+           * 空の1本を残す。
+           */
+          if(
+            data.sessions.length === 0
+          ){
+
+            data.sessions.push(
+              blankSession()
+            );
+
+          }
+
+
+          updateStats();
+
+          scheduleSave(key);
+
+          renderFocusSessions();
+
+          syncCellFromData(key);
+
+        }
+      );
+
+    });
+
+}
+
+
+/* ============================================================
+   練習追加
+   ============================================================ */
+
+document
+  .getElementById('addSessionBtn')
+  .addEventListener(
+    'click',
+    () => {
+
+      const key =
+        state.selectedDate;
+
+
+      if(!key) return;
+
+
+      const data =
+        ensureDay(key);
+
+
+      data.sessions.push(
+        blankSession()
+      );
+
+
       scheduleSave(key);
+
       renderFocusSessions();
+
       syncCellFromData(key);
-    });
-  });
-}
 
-document.getElementById('addSessionBtn').addEventListener('click', e=>{
-  e.preventDefault();
-  e.stopPropagation();
-  const key = state.selectedDate;
-  if(!key) return;
-  const data = ensureDay(key);
-  data.sessions.push(blankSession());
-  updateStats();
-  scheduleSave(key);
-  renderFocusSessions();
-  syncCellFromData(key);
-});
+    }
+  );
 
-document.getElementById('focusDoneCheckbox').addEventListener('change', e=>{
-  const key = state.selectedDate; const data = ensureDay(key);
-  data.done = e.target.checked;
-  document.getElementById('focusDoneWrap').classList.toggle('done', data.done);
-  document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
-  updateStats(); scheduleSave(key);
-  const cell = document.querySelector(`.cell[data-date="${key}"]`);
-  if(cell){
-    cell.querySelector('[data-role="done"]').checked = data.done;
-    cell.classList.toggle('done', data.done);
-  }
-});
 
-document.getElementById('focusMemo').addEventListener('input', e=>{
-  const key = state.selectedDate; const data = ensureDay(key);
-  data.memo = e.target.textContent.trim(); scheduleSave(key);
-  const cell = document.querySelector(`.cell[data-date="${key}"]`);
-  if(cell){
-    const memoEl = cell.querySelector('[data-role="memo"]');
-    if(document.activeElement !== memoEl) memoEl.textContent = data.memo;
-  }
-});
+/* ============================================================
+   実施済み
+   ============================================================ */
 
-// keep the calendar cell's first-session fields + multi-session badge in sync
-// after edits made inside the focus card
+document
+  .getElementById(
+    'focusDoneCheckbox'
+  )
+  .addEventListener(
+    'change',
+    e => {
+
+      const key =
+        state.selectedDate;
+
+
+      const data =
+        ensureDay(key);
+
+
+      data.done =
+        e.target.checked;
+
+
+      document
+        .getElementById(
+          'focusDoneWrap'
+        )
+        .classList.toggle(
+          'done',
+          data.done
+        );
+
+
+      document
+        .getElementById(
+          'focusDoneLabel'
+        )
+        .textContent =
+          data.done
+            ? '実施済み ✓'
+            : '未実施';
+
+
+      updateStats();
+
+      scheduleSave(key);
+
+
+      const cell =
+        document.querySelector(
+          `.cell[data-date="${key}"]`
+        );
+
+
+      if(cell){
+
+        const chk =
+          cell.querySelector(
+            '[data-role="done"]'
+          );
+
+
+        if(chk){
+
+          chk.checked =
+            data.done;
+
+        }
+
+
+        cell.classList.toggle(
+          'done',
+          data.done
+        );
+
+      }
+
+    }
+  );
+
+
+/* ============================================================
+   フォーカスメモ
+   ============================================================ */
+
+document
+  .getElementById('focusMemo')
+  .addEventListener(
+    'input',
+    e => {
+
+      const key =
+        state.selectedDate;
+
+
+      const data =
+        ensureDay(key);
+
+
+      data.memo =
+        e.target.textContent.trim();
+
+
+      scheduleSave(key);
+
+
+      const cell =
+        document.querySelector(
+          `.cell[data-date="${key}"]`
+        );
+
+
+      if(cell){
+
+        const memoEl =
+          cell.querySelector(
+            '[data-role="memo"]'
+          );
+
+
+        if(
+          document.activeElement !== memoEl
+        ){
+
+          memoEl.textContent =
+            data.memo;
+
+        }
+
+      }
+
+    }
+  );
+
+
+/* ============================================================
+   カレンダーとの同期
+   ============================================================ */
+
 function syncCellFromData(key){
-  const cell = document.querySelector(`.cell[data-date="${key}"]`);
+
+  const cell =
+    document.querySelector(
+      `.cell[data-date="${key}"]`
+    );
+
+
   if(!cell) return;
-  const data = ensureDay(key);
-  const s0 = data.sessions[0];
-  const typeSel = cell.querySelector('[data-role="type"]');
-  typeSel.value = s0.type || '';
-  typeSel.className = 'type-pill ' + (TYPE_CLASS[s0.type]||'');
-  const menuEl = cell.querySelector('[data-role="menu"]');
-  const distEl = cell.querySelector('[data-role="distance"]');
-  const paceEl = cell.querySelector('[data-role="pace"]');
-  if(document.activeElement !== menuEl) menuEl.textContent = s0.menu || '';
-  if(document.activeElement !== distEl) distEl.textContent = s0.distance || '';
-  if(document.activeElement !== paceEl) paceEl.textContent = s0.pace || '';
 
-  let badge = cell.querySelector('.multi-badge');
-  if(data.sessions.length > 1){
-    if(!badge){
-      badge = document.createElement('span');
-      badge.className = 'multi-badge';
-      cell.querySelector('.cell-top-left').appendChild(badge);
-    }
-    badge.textContent = '×' + data.sessions.length;
-  }else if(badge){
-    badge.remove();
+
+  const data =
+    ensureDay(key);
+
+
+  const s0 =
+    data.sessions[0];
+
+
+  const typeSel =
+    cell.querySelector(
+      '[data-role="type"]'
+    );
+
+
+  if(typeSel){
+
+    typeSel.value =
+      s0.type || '';
+
+
+    typeSel.className =
+      'type-pill ' +
+      (
+        TYPE_CLASS[
+          s0.type
+        ] || ''
+      );
+
   }
+
+
+  const menuEl =
+    cell.querySelector(
+      '[data-role="menu"]'
+    );
+
+
+  const distEl =
+    cell.querySelector(
+      '[data-role="distance"]'
+    );
+
+
+  const paceEl =
+    cell.querySelector(
+      '[data-role="pace"]'
+    );
+
+
+  if(
+    document.activeElement !== menuEl
+  ){
+
+    menuEl.textContent =
+      s0.menu || '';
+
+  }
+
+
+  if(
+    document.activeElement !== distEl
+  ){
+
+    distEl.textContent =
+      s0.distance || '';
+
+  }
+
+
+  if(
+    document.activeElement !== paceEl
+  ){
+
+    paceEl.textContent =
+      s0.pace || '';
+
+  }
+
+
+  let badge =
+    cell.querySelector(
+      '.multi-badge'
+    );
+
+
+  if(
+    data.sessions.length > 1
+  ){
+
+    if(!badge){
+
+      badge =
+        document.createElement(
+          'span'
+        );
+
+      badge.className =
+        'multi-badge';
+
+      cell
+        .querySelector(
+          '.cell-top-left'
+        )
+        .appendChild(badge);
+
+    }
+
+
+    badge.textContent =
+      '×' +
+      data.sessions.length;
+
+  }
+
+  else if(badge){
+
+    badge.remove();
+
+  }
+
 }
 
-/* ---------------- weather (Tokyo only) ---------------- */
+
+/* ============================================================
+   天気
+   ============================================================ */
+
 async function fetchWeather(){
+
   try{
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${TOKYO.lat}&longitude=${TOKYO.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=7`;
-    const res = await fetch(url);
-    const json = await res.json();
-    const d = json.daily;
-    state.forecast = {};
-    for(let i=0;i<d.time.length;i++){
-      state.forecast[d.time[i]] = {
-        code: d.weathercode[i],
-        tmax: Math.round(d.temperature_2m_max[i]),
-        tmin: Math.round(d.temperature_2m_min[i]),
-        pop: d.precipitation_probability_max[i]
-      };
+
+    const url =
+      `https://api.open-meteo.com/v1/forecast` +
+      `?latitude=${TOKYO.lat}` +
+      `&longitude=${TOKYO.lon}` +
+      `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+      `&timezone=Asia%2FTokyo` +
+      `&forecast_days=7`;
+
+
+    const res =
+      await fetch(url);
+
+
+    if(!res.ok){
+
+      throw new Error(
+        'Weather API error'
+      );
+
     }
+
+
+    const json =
+      await res.json();
+
+
+    const d =
+      json.daily;
+
+
+    state.forecast = {};
+
+
+    for(
+      let i=0;
+      i<d.time.length;
+      i++
+    ){
+
+      state.forecast[d.time[i]] = {
+
+        code:d.weathercode[i],
+
+        tmax:
+          Math.round(
+            d.temperature_2m_max[i]
+          ),
+
+        tmin:
+          Math.round(
+            d.temperature_2m_min[i]
+          ),
+
+        pop:
+          d.precipitation_probability_max[i]
+
+      };
+
+    }
+
+
     renderLapboard();
+
     applyForecastToCalendar();
-  }catch(err){ /* weather is a bonus feature - fail silently */ }
+
+
+  }catch(err){
+
+    console.warn(
+      'Weather fetch failed:',
+      err
+    );
+
+  }
+
 }
+
+
+/* ============================================================
+   天気カード
+   ============================================================ */
 
 function renderLapboard(){
-  const board = document.getElementById('lapboard');
-  const now = new Date();
-  const todayKey = fmtDate(now.getFullYear(),now.getMonth(),now.getDate());
-  const keys = Object.keys(state.forecast).sort();
-  board.innerHTML = keys.map(key=>{
-    const f = state.forecast[key];
-    const dt = new Date(key+'T00:00:00');
-    const dow = WEEKDAY_JA[dt.getDay()];
-    const isToday = key===todayKey;
-    return `<div class="lapcard${isToday?' today':''}">
-        <div class="lap-dow">${dow}曜</div>
-        <div class="lap-date">${dt.getMonth()+1}/${dt.getDate()}</div>
-        <div class="lap-emoji">${wmoIcon(f.code)}</div>
-        <div class="lap-temp">${f.tmax}°<span class="lo">/${f.tmin}°</span></div>
-        <div class="lap-pop">☔ ${f.pop}%</div>
-      </div>`;
-  }).join('');
+
+  const board =
+    document.getElementById(
+      'lapboard'
+    );
+
+
+  const now =
+    new Date();
+
+
+  const todayKey =
+    fmtDate(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+
+  const keys =
+    Object.keys(
+      state.forecast
+    ).sort();
+
+
+  board.innerHTML =
+    keys.map(key => {
+
+      const f =
+        state.forecast[key];
+
+
+      const dt =
+        new Date(
+          key + 'T00:00:00'
+        );
+
+
+      const dow =
+        WEEKDAY_JA[
+          dt.getDay()
+        ];
+
+
+      const isToday =
+        key === todayKey;
+
+
+      return `
+
+        <div
+          class="lapcard${isToday?' today':''}"
+        >
+
+          <div class="lap-dow">
+            ${dow}曜
+          </div>
+
+          <div class="lap-date">
+            ${dt.getMonth()+1}/${dt.getDate()}
+          </div>
+
+          <div class="lap-emoji">
+            ${wmoIcon(f.code)}
+          </div>
+
+          <div class="lap-temp">
+            ${f.tmax}°
+            <span class="lo">
+              /${f.tmin}°
+            </span>
+          </div>
+
+          <div class="lap-pop">
+            ☔ ${f.pop}%
+          </div>
+
+        </div>
+
+      `;
+
+    }).join('');
+
 }
+
+
+/* ============================================================
+   カレンダーに天気反映
+   ============================================================ */
 
 function applyForecastToCalendar(){
-  let touchedKeys = [];
-  Object.keys(state.forecast).forEach(key=>{
-    const data = ensureDay(key);
-    if(data.weather && data.weather.auto===false) return;
-    const f = state.forecast[key];
-    const text = wmoIcon(f.code), temp = `${f.tmax}/${f.tmin}°`;
-    if(!data.weather || data.weather.text!==text || data.weather.temp!==temp){
-      data.weather = {text, temp, auto:true};
+
+  const touchedKeys = [];
+
+
+  Object.keys(
+    state.forecast
+  ).forEach(key => {
+
+    const data =
+      ensureDay(key);
+
+
+    /*
+     * ユーザーが手動変更した天気は
+     * 自動天気で上書きしない。
+     */
+    if(
+      data.weather &&
+      data.weather.auto === false
+    ){
+
+      return;
+
+    }
+
+
+    const f =
+      state.forecast[key];
+
+
+    const text =
+      wmoIcon(f.code);
+
+
+    const temp =
+      `${f.tmax}/${f.tmin}°`;
+
+
+    if(
+      !data.weather ||
+      data.weather.text !== text ||
+      data.weather.temp !== temp
+    ){
+
+      data.weather = {
+
+        text,
+
+        temp,
+
+        auto:true
+
+      };
+
+
+      /*
+       * 天気だけの変更なので
+       * 保存待ちに追加。
+       *
+       * ただしユーザー入力が保存待ちの場合は
+       * そのデータをそのまま保持する。
+       */
       touchedKeys.push(key);
-    }
-  });
-  document.querySelectorAll('.cell[data-date]').forEach(cell=>{
-    const key = cell.dataset.date;
-    const data = state.dayData[key];
-    if(data && data.weather){
-      cell.querySelector('[data-role="weather"]').textContent = data.weather.text;
-      cell.querySelector('.wtemp').textContent = data.weather.temp || '';
-    }
-  });
-  if(state.selectedDate){
-    const data = state.dayData[state.selectedDate];
-    if(data && data.weather){
-      document.getElementById('focusWEmoji').textContent = data.weather.text;
-      document.getElementById('focusWTemp').textContent = data.weather.temp || '';
-    }
-  }
-  touchedKeys.forEach(k=>scheduleSave(k));
-}
 
-/* ---------------- navigation ---------------- */
-document.getElementById('prevBtn').addEventListener('click', async ()=>{
-  await flushPendingSaves();
-  let m = state.month-1, y = state.year;
-  if(m<0){m=11; y--;}
-  loadMonth(y,m);
-});
-document.getElementById('nextBtn').addEventListener('click', async ()=>{
-  await flushPendingSaves();
-  let m = state.month+1, y = state.year;
-  if(m>11){m=0; y++;}
-  loadMonth(y,m);
-});
-document.getElementById('monthSelect').addEventListener('change', async (e)=>{
-  await flushPendingSaves();
-  const [y,m] = e.target.value.split('-').map(Number);
-  loadMonth(y, m-1);
-});
-document.getElementById('refreshBtn').addEventListener('click', ()=>{
-  loadMonth(state.year, state.month);
-});
+    }
 
-/* ---------------- PDF export ---------------- */
-document.getElementById('pdfBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('pdfBtn');
-  const orig = btn.innerHTML;
-  btn.innerHTML = '<span class="dot"></span>PDF作成中...';
-  btn.disabled = true;
-  try{
-    const target = document.getElementById('exportRoot');
-    // force desktop-width layout during capture so the PDF always shows the
-    // full 7-column grid, even when exporting from a phone's stacked list view
-    const canvas = await html2canvas(target, {scale:2, backgroundColor:'#F3F5F3', windowWidth:1200});
-    const imgData = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
-    // build a single page sized to exactly fit the captured content
-    const margin = 24; // pt
-    const pxToPt = 0.75 / 2;
-    const contentWidthPt = canvas.width * pxToPt;
-    const contentHeightPt = canvas.height * pxToPt;
-    const pageWidthPt = contentWidthPt + margin*2;
-    const pageHeightPt = contentHeightPt + margin*2;
-    const pdf = new jsPDF({
-      orientation: pageWidthPt > pageHeightPt ? 'l' : 'p',
-      unit: 'pt',
-      format: [pageWidthPt, pageHeightPt]
+  });
+
+
+  document
+    .querySelectorAll(
+      '.cell[data-date]'
+    )
+    .forEach(cell => {
+
+      const key =
+        cell.dataset.date;
+
+
+      const data =
+        state.dayData[key];
+
+
+      if(
+        data &&
+        data.weather
+      ){
+
+        const weatherEl =
+          cell.querySelector(
+            '[data-role="weather"]'
+          );
+
+
+        const tempEl =
+          cell.querySelector(
+            '.wtemp'
+          );
+
+
+        if(weatherEl){
+
+          weatherEl.textContent =
+            data.weather.text;
+
+        }
+
+
+        if(tempEl){
+
+          tempEl.textContent =
+            data.weather.temp || '';
+
+        }
+
+      }
+
     });
-    pdf.addImage(imgData, 'PNG', margin, margin, contentWidthPt, contentHeightPt);
-    pdf.save(`running-menu-${monthKey(state.year,state.month)}.pdf`);
-  }catch(err){
-    alert('PDFの作成に失敗しました: ' + err.message);
-  }finally{
-    btn.innerHTML = orig;
-    btn.disabled = false;
-  }
-});
 
-/* ---------------- init ---------------- */
-renderWeekrow();
-if(db){
-  loadMonth(state.year, state.month);
-}else{
-  renderCalendar(); // render an empty, non-persisting calendar so the page isn't blank
+
+  if(state.selectedDate){
+
+    const data =
+      state.dayData[
+        state.selectedDate
+      ];
+
+
+    if(
+      data &&
+      data.weather
+    ){
+
+      document.getElementById(
+        'focusWEmoji'
+      ).textContent =
+        data.weather.text;
+
+
+      document.getElementById(
+        'focusWTemp'
+      ).textContent =
+        data.weather.temp || '';
+
+    }
+
+  }
+
+
+  /*
+   * 天気の保存
+   *
+   * すでにユーザーが入力している日については
+   * scheduleSaveによって同じデータが保持される。
+   */
+  touchedKeys.forEach(key => {
+
+    scheduleSave(key);
+
+  });
+
 }
+
+
+/* ============================================================
+   前月
+   ============================================================ */
+
+document
+  .getElementById('prevBtn')
+  .addEventListener(
+    'click',
+    async () => {
+
+      await flushPendingSaves();
+
+
+      let m =
+        state.month - 1;
+
+
+      let y =
+        state.year;
+
+
+      if(m < 0){
+
+        m = 11;
+
+        y--;
+
+      }
+
+
+      loadMonth(y,m);
+
+    }
+  );
+
+
+/* ============================================================
+   次月
+   ============================================================ */
+
+document
+  .getElementById('nextBtn')
+  .addEventListener(
+    'click',
+    async () => {
+
+      await flushPendingSaves();
+
+
+      let m =
+        state.month + 1;
+
+
+      let y =
+        state.year;
+
+
+      if(m > 11){
+
+        m = 0;
+
+        y++;
+
+      }
+
+
+      loadMonth(y,m);
+
+    }
+  );
+
+
+/* ============================================================
+   月選択
+   ============================================================ */
+
+document
+  .getElementById('monthSelect')
+  .addEventListener(
+    'change',
+    async e => {
+
+      await flushPendingSaves();
+
+
+      const [
+        y,
+        m
+      ] =
+        e.target.value
+          .split('-')
+          .map(Number);
+
+
+      loadMonth(
+        y,
+        m-1
+      );
+
+    }
+  );
+
+
+/* ============================================================
+   更新ボタン
+   ============================================================ */
+
+document
+  .getElementById('refreshBtn')
+  .addEventListener(
+    'click',
+    async () => {
+
+      /*
+       * 更新前に必ず保存
+       */
+      await flushPendingSaves();
+
+
+      loadMonth(
+        state.year,
+        state.month
+      );
+
+    }
+  );
+
+
+/* ============================================================
+   ページを閉じる前
+   ============================================================ */
+
+window.addEventListener(
+  'beforeunload',
+  () => {
+
+    /*
+     * 保存タイマーを止める
+     */
+    Object.keys(
+      saveTimers
+    ).forEach(key => {
+
+      clearTimeout(
+        saveTimers[key]
+      );
+
+    });
+
+
+    /*
+     * Firebaseへ直接送る。
+     *
+     * beforeunloadではawaitできないため、
+     * Firebase SDKのset()を呼び出す。
+     */
+    if(
+      db &&
+      daysRef
+    ){
+
+      pendingSaves.forEach(
+        key => {
+
+          if(
+            state.dayData[key]
+          ){
+
+            daysRef
+              .child(key)
+              .set(
+                JSON.parse(
+                  JSON.stringify(
+                    state.dayData[key]
+                  )
+                )
+              );
+
+          }
+
+        }
+      );
+
+    }
+
+  }
+);
+
+
+/* ============================================================
+   タブを離れる・スマホで別アプリにする場合
+   ============================================================ */
+
+document.addEventListener(
+  'visibilitychange',
+  async () => {
+
+    if(
+      document.visibilityState ===
+      'hidden'
+    ){
+
+      /*
+       * 可能なら保存を開始
+       */
+      try{
+
+        await flushPendingSaves();
+
+      }catch(e){
+
+        console.warn(
+          'background save error:',
+          e
+        );
+
+      }
+
+    }
+
+  }
+);
+
+
+/* ============================================================
+   PDF
+   ============================================================ */
+
+document
+  .getElementById('pdfBtn')
+  .addEventListener(
+    'click',
+    async () => {
+
+      /*
+       * PDF作成前にも保存
+       */
+      await flushPendingSaves();
+
+
+      const btn =
+        document.getElementById(
+          'pdfBtn'
+        );
+
+
+      const orig =
+        btn.innerHTML;
+
+
+      btn.innerHTML =
+        '<span class="dot"></span>PDF作成中...';
+
+
+      btn.disabled = true;
+
+
+      try{
+
+        const target =
+          document.getElementById(
+            'exportRoot'
+          );
+
+
+        const canvas =
+          await html2canvas(
+            target,
+            {
+              scale:2,
+              backgroundColor:'#F3F5F3',
+              windowWidth:1200
+            }
+          );
+
+
+        const imgData =
+          canvas.toDataURL(
+            'image/png'
+          );
+
+
+        const {
+          jsPDF
+        } =
+          window.jspdf;
+
+
+        const margin = 24;
+
+
+        const pxToPt =
+          0.75 / 2;
+
+
+        const contentWidthPt =
+          canvas.width *
+          pxToPt;
+
+
+        const contentHeightPt =
+          canvas.height *
+          pxToPt;
+
+
+        const pageWidthPt =
+          contentWidthPt +
+          margin * 2;
+
+
+        const pageHeightPt =
+          contentHeightPt +
+          margin * 2;
+
+
+        const pdf =
+          new jsPDF({
+            orientation:
+              pageWidthPt >
+              pageHeightPt
+                ? 'l'
+                : 'p',
+            unit:'pt',
+            format:[
+              pageWidthPt,
+              pageHeightPt
+            ]
+          });
+
+
+        pdf.addImage(
+          imgData,
+          'PNG',
+          margin,
+          margin,
+          contentWidthPt,
+          contentHeightPt
+        );
+
+
+        pdf.save(
+          `running-menu-${monthKey(
+            state.year,
+            state.month
+          )}.pdf`
+        );
+
+
+      }catch(err){
+
+        alert(
+          'PDFの作成に失敗しました: ' +
+          err.message
+        );
+
+
+      }finally{
+
+        btn.innerHTML =
+          orig;
+
+        btn.disabled =
+          false;
+
+      }
+
+    }
+  );
+
+
+/* ============================================================
+   初期化
+   ============================================================ */
+
+renderWeekrow();
+
+
+if(db){
+
+  loadMonth(
+    state.year,
+    state.month
+  );
+
+}else{
+
+  renderCalendar();
+
+}
+
+
 fetchWeather();
+
+
 </script>
+
 </body>
 </html>
