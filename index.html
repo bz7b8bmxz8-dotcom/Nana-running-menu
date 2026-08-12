@@ -567,15 +567,22 @@ function loadMonth(year, month){
     // or slow-to-resolve day can never block the rest of the month from
     // syncing, and there is no fragile "does this look identical" comparison
     // that can get permanently stuck.
-    let changed = false;
+    //
+    // Changed cells are patched in place (patchCell) rather than rebuilding
+    // the whole grid with renderCalendar(). Rebuilding the grid destroys and
+    // recreates every cell's DOM node, including whichever one the person is
+    // currently typing in - on mobile that instantly closes the keyboard,
+    // even though the data itself was protected from being overwritten.
+    const changedKeys = [];
     Object.keys(days).forEach(k=>{
       if(saveTimers[k] || inFlightSaves[k] || isEditingDay(k)) return;
       state.dayData[k] = days[k];
-      changed = true;
+      changedKeys.push(k);
     });
-    if(changed){
-      renderCalendar();
-      renderFocusCard();
+    if(changedKeys.length){
+      changedKeys.forEach(k=>patchCell(k));
+      updateStats();
+      if(changedKeys.includes(state.selectedDate)) renderFocusCard();
     }
   }, err=>{
     showLoadingOverlay(false);
@@ -726,6 +733,56 @@ function renderCalendar(){
 
   attachCellEvents();
   updateStats();
+}
+
+// Updates a single calendar cell's DOM in place to reflect state.dayData,
+// without touching any other cell. Used for realtime sync updates so that
+// whichever cell the person is currently typing in is never destroyed and
+// recreated (which would blur it and close the mobile keyboard).
+function patchCell(key){
+  const cell = document.querySelector(`.cell[data-date="${key}"]`);
+  if(!cell) return;
+  const data = ensureDay(key);
+  const s0 = data.sessions[0];
+  const now = new Date();
+  const todayKey = fmtDate(now.getFullYear(), now.getMonth(), now.getDate());
+
+  cell.classList.toggle('done', !!data.done);
+  cell.classList.toggle('selected', key === state.selectedDate);
+  cell.classList.toggle('today', key === todayKey);
+
+  const doneChk = cell.querySelector('[data-role="done"]');
+  if(document.activeElement !== doneChk) doneChk.checked = !!data.done;
+
+  const typeSel = cell.querySelector('[data-role="type"]');
+  if(document.activeElement !== typeSel){
+    typeSel.value = s0.type || '';
+    typeSel.className = 'type-pill ' + (TYPE_CLASS[s0.type]||'');
+  }
+
+  const menuEl = cell.querySelector('[data-role="menu"]');
+  const distEl = cell.querySelector('[data-role="distance"]');
+  const paceEl = cell.querySelector('[data-role="pace"]');
+  const memoEl = cell.querySelector('[data-role="memo"]');
+  if(document.activeElement !== menuEl) menuEl.textContent = s0.menu || '';
+  if(document.activeElement !== distEl) distEl.textContent = s0.distance || '';
+  if(document.activeElement !== paceEl) paceEl.textContent = s0.pace || '';
+  if(document.activeElement !== memoEl) memoEl.textContent = data.memo || '';
+
+  cell.querySelector('[data-role="weather"]').textContent = data.weather ? data.weather.text : '－';
+  cell.querySelector('.wtemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
+
+  let badge = cell.querySelector('.multi-badge');
+  if(data.sessions.length > 1){
+    if(!badge){
+      badge = document.createElement('span');
+      badge.className = 'multi-badge';
+      cell.querySelector('.cell-top-left').appendChild(badge);
+    }
+    badge.textContent = '×' + data.sessions.length;
+  }else if(badge){
+    badge.remove();
+  }
 }
 
 function attachCellEvents(){
