@@ -591,10 +591,26 @@ function loadMonth(year, month){
   });
 }
 
+// Shows the TRUE combined state across every day that has unsaved input,
+// rather than only the most recently touched one. Without this, saving day A
+// could show "✓ 保存済み" while day B is still silently waiting to save,
+// making it look safe to close the page when it isn't.
+function refreshStatusDisplay(){
+  const waiting = Object.keys(saveTimers).length;
+  const inFlight = Object.keys(inFlightSaves).length;
+  const total = waiting + inFlight;
+  if(total > 0){
+    setStatus(total > 1 ? `未保存 ${total}件…` : (inFlight ? '保存中…' : '入力中…'));
+  }else{
+    const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    setStatus('✓ 保存済み ' + t);
+  }
+}
+
 function scheduleSave(dateKey){
-  setStatus('入力中…');
   clearTimeout(saveTimers[dateKey]);
-  saveTimers[dateKey] = setTimeout(()=>saveDay(dateKey), 900);
+  saveTimers[dateKey] = setTimeout(()=>saveDay(dateKey), 600);
+  refreshStatusDisplay();
 }
 
 async function saveDay(dateKey){
@@ -602,19 +618,18 @@ async function saveDay(dateKey){
   delete saveTimers[dateKey];
   if(!db || !daysRef){ setStatus('⚠ Firebase未設定'); return; }
   inFlightSaves[dateKey] = true;
-  setStatus('保存中…');
+  refreshStatusDisplay();
   try{
     // only this single day's node is written - edits to other days
     // (from another device/tab) are never touched or overwritten
     await daysRef.child(dateKey).set(state.dayData[dateKey]);
-    const t = new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
-    setStatus('✓ 保存済み ' + t);
     refreshMonthSelect();
   }catch(e){
     setStatus('⚠ 保存に失敗しました');
     console.error(e);
   }finally{
     delete inFlightSaves[dateKey];
+    refreshStatusDisplay();
   }
 }
 
@@ -623,6 +638,16 @@ async function flushPendingSaves(){
   if(keys.length === 0) return;
   await Promise.all(keys.map(k=>saveDay(k)));
 }
+
+// Safety net: if the person edits several days and then closes the tab,
+// locks their phone, or switches apps before each day's 600ms debounce has
+// had a chance to fire, those edits would otherwise be lost. Flush
+// immediately the moment the page is hidden or about to unload, in addition
+// to the normal debounce.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden') flushPendingSaves();
+});
+window.addEventListener('pagehide', ()=>{ flushPendingSaves(); });
 
 async function refreshMonthSelect(){
   if(!db) return;
