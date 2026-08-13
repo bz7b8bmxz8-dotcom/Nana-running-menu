@@ -817,6 +817,20 @@ function attachCellEvents(){
 
     cell.addEventListener('click', ()=>{ selectDate(key); });
 
+    // The moment focus leaves this cell entirely (person taps another day,
+    // another field, or closes the keyboard), flush any pending save for
+    // this day immediately instead of waiting out the debounce. This is
+    // what actually protects the data if the page gets closed right after -
+    // relying only on the debounce timer or a page-unload handler isn't
+    // reliable enough, especially on mobile.
+    cell.addEventListener('focusout', ()=>{
+      setTimeout(()=>{
+        if(!cell.contains(document.activeElement) && saveTimers[key]){
+          saveDay(key);
+        }
+      }, 0);
+    });
+
     cell.querySelector('[data-role="menu"]').addEventListener('input', e=>{
       data.sessions[0].menu = e.target.textContent.trim(); scheduleSave(key);
       if(state.selectedDate===key) renderFocusSessions();
@@ -842,7 +856,7 @@ function attachCellEvents(){
     typeSel.addEventListener('change', e=>{
       data.sessions[0].type = e.target.value;
       typeSel.className = 'type-pill ' + (TYPE_CLASS[data.sessions[0].type]||'');
-      scheduleSave(key);
+      saveDay(key);
       if(state.selectedDate===key) renderFocusSessions();
     });
     cell.querySelector('[data-role="weather"]').addEventListener('click', e=>{
@@ -854,7 +868,7 @@ function attachCellEvents(){
       data.weather = next ? {text:next, temp:(data.weather&&data.weather.temp)||'', auto:false} : null;
       e.target.textContent = next || '－';
       cell.querySelector('.wtemp').textContent = data.weather ? (data.weather.temp||'') : '';
-      scheduleSave(key);
+      saveDay(key);
       if(state.selectedDate===key){
         document.getElementById('focusWEmoji').textContent = data.weather ? data.weather.text : '－';
         document.getElementById('focusWTemp').textContent = data.weather && data.weather.temp ? data.weather.temp : '';
@@ -865,7 +879,7 @@ function attachCellEvents(){
     doneChk.addEventListener('change', e=>{
       data.done = e.target.checked;
       cell.classList.toggle('done', data.done);
-      scheduleSave(key); updateStats();
+      saveDay(key); updateStats();
       if(state.selectedDate===key){
         document.getElementById('focusDoneCheckbox').checked = data.done;
         document.getElementById('focusDoneWrap').classList.toggle('done', data.done);
@@ -964,7 +978,7 @@ function renderFocusSessions(){
       const i = +e.target.dataset.idx;
       data.sessions[i].type = e.target.value;
       e.target.className = 'type-pill ' + (TYPE_CLASS[data.sessions[i].type]||'');
-      scheduleSave(key);
+      saveDay(key);
       if(i===0) syncCellFromData(key);
     });
   });
@@ -1001,7 +1015,7 @@ function renderFocusSessions(){
       if(data.sessions.length <= 1) return;
       data.sessions.splice(i,1);
       updateStats();
-      scheduleSave(key);
+      saveDay(key);
       renderFocusSessions();
       syncCellFromData(key);
     });
@@ -1016,7 +1030,7 @@ document.getElementById('addSessionBtn').addEventListener('click', e=>{
   const data = ensureDay(key);
   data.sessions.push(blankSession());
   updateStats();
-  scheduleSave(key);
+  saveDay(key);
   renderFocusSessions();
   syncCellFromData(key);
 });
@@ -1026,7 +1040,7 @@ document.getElementById('focusDoneCheckbox').addEventListener('change', e=>{
   data.done = e.target.checked;
   document.getElementById('focusDoneWrap').classList.toggle('done', data.done);
   document.getElementById('focusDoneLabel').textContent = data.done ? '実施済み ✓' : '未実施';
-  updateStats(); scheduleSave(key);
+  updateStats(); saveDay(key);
   const cell = document.querySelector(`.cell[data-date="${key}"]`);
   if(cell){
     cell.querySelector('[data-role="done"]').checked = data.done;
@@ -1042,6 +1056,18 @@ document.getElementById('focusMemo').addEventListener('input', e=>{
     const memoEl = cell.querySelector('[data-role="memo"]');
     if(document.activeElement !== memoEl) memoEl.textContent = data.memo;
   }
+});
+
+// Same "flush the instant focus leaves" safety net as the calendar cells,
+// applied to the whole focus card (covers every session row + the memo box).
+document.getElementById('focusCard').addEventListener('focusout', ()=>{
+  setTimeout(()=>{
+    const card = document.getElementById('focusCard');
+    const key = state.selectedDate;
+    if(key && !card.contains(document.activeElement) && saveTimers[key]){
+      saveDay(key);
+    }
+  }, 0);
 });
 
 // keep the calendar cell's first-session fields + multi-session badge in sync
