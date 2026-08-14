@@ -351,6 +351,7 @@
 
   <div class="banner">
     <span>⚠️このメニュー表は共有データなので保存済み表示を確認してください</span>
+    <span class="status" id="connStatus"></span>
     <span class="status" id="statusText"></span>
   </div>
 
@@ -440,6 +441,17 @@ if(CONFIG_OK){
   try{
     firebase.initializeApp(firebaseConfig);
     db = firebase.database();
+    // Surface the actual connection state to the server. WebSocket
+    // connections can silently drop (flaky wifi, restrictive networks,
+    // devtools attached, etc.) - when that happens, writes queue up locally
+    // but never actually reach Firebase until the connection comes back, so
+    // it's important the person can SEE that they're offline instead of
+    // wrongly assuming everything saved.
+    db.ref('.info/connected').on('value', snap=>{
+      const el = document.getElementById('connStatus');
+      if(!el) return;
+      el.textContent = snap.val() === true ? '🟢 オンライン' : '🔴 オフライン(通信が切れています)';
+    });
   }catch(e){
     console.error('Firebase init error', e);
   }
@@ -813,7 +825,12 @@ function patchCell(key){
 function attachCellEvents(){
   document.querySelectorAll('.cell[data-date]').forEach(cell=>{
     const key = cell.dataset.date;
-    const data = ensureDay(key);
+    // NOTE: we deliberately do NOT cache `ensureDay(key)` into a variable
+    // here. Background sync can replace state.dayData[key] with a fresh
+    // object (see the realtime merge logic above); a cached reference would
+    // then point at an orphaned object that nothing ever saves, silently
+    // discarding whatever the person types. Every handler below looks up
+    // ensureDay(key) again at the moment it actually fires instead.
 
     cell.addEventListener('click', ()=>{ selectDate(key); });
 
@@ -832,19 +849,23 @@ function attachCellEvents(){
     });
 
     cell.querySelector('[data-role="menu"]').addEventListener('input', e=>{
+      const data = ensureDay(key);
       data.sessions[0].menu = e.target.textContent.trim(); scheduleSave(key);
       if(state.selectedDate===key) renderFocusSessions();
     });
     cell.querySelector('[data-role="distance"]').addEventListener('input', e=>{
+      const data = ensureDay(key);
       data.sessions[0].distance = e.target.textContent.trim(); updateStats(); scheduleSave(key);
       if(state.selectedDate===key) renderFocusSessions();
     });
     cell.querySelector('[data-role="pace"]').addEventListener('input', e=>{
+      const data = ensureDay(key);
       data.sessions[0].pace = e.target.textContent.trim(); scheduleSave(key);
       if(state.selectedDate===key) renderFocusSessions();
     });
     const memoEl = cell.querySelector('[data-role="memo"]');
     memoEl.addEventListener('input', e=>{
+      const data = ensureDay(key);
       data.memo = e.target.textContent.trim(); scheduleSave(key);
       if(state.selectedDate===key){
         const fm = document.getElementById('focusMemo');
@@ -854,6 +875,7 @@ function attachCellEvents(){
     const typeSel = cell.querySelector('[data-role="type"]');
     typeSel.addEventListener('click', e=> e.stopPropagation());
     typeSel.addEventListener('change', e=>{
+      const data = ensureDay(key);
       data.sessions[0].type = e.target.value;
       typeSel.className = 'type-pill ' + (TYPE_CLASS[data.sessions[0].type]||'');
       saveDay(key);
@@ -861,6 +883,7 @@ function attachCellEvents(){
     });
     cell.querySelector('[data-role="weather"]').addEventListener('click', e=>{
       e.stopPropagation();
+      const data = ensureDay(key);
       const cur = data.weather ? data.weather.text : '';
       let idx = WEATHER_CYCLE.indexOf(cur);
       idx = (idx+1) % WEATHER_CYCLE.length;
@@ -877,6 +900,7 @@ function attachCellEvents(){
     const doneChk = cell.querySelector('[data-role="done"]');
     doneChk.addEventListener('click', e=> e.stopPropagation());
     doneChk.addEventListener('change', e=>{
+      const data = ensureDay(key);
       data.done = e.target.checked;
       cell.classList.toggle('done', data.done);
       saveDay(key); updateStats();
@@ -975,6 +999,7 @@ function renderFocusSessions(){
   wrap.querySelectorAll('[data-role="s-type"]').forEach(el=>{
     el.addEventListener('click', e=>e.stopPropagation());
     el.addEventListener('change', e=>{
+      const data = ensureDay(key);
       const i = +e.target.dataset.idx;
       data.sessions[i].type = e.target.value;
       e.target.className = 'type-pill ' + (TYPE_CLASS[data.sessions[i].type]||'');
@@ -984,6 +1009,7 @@ function renderFocusSessions(){
   });
   wrap.querySelectorAll('[data-role="s-menu"]').forEach(el=>{
     el.addEventListener('input', e=>{
+      const data = ensureDay(key);
       const i = +e.target.dataset.idx;
       data.sessions[i].menu = e.target.textContent.trim();
       scheduleSave(key);
@@ -992,6 +1018,7 @@ function renderFocusSessions(){
   });
   wrap.querySelectorAll('[data-role="s-distance"]').forEach(el=>{
     el.addEventListener('input', e=>{
+      const data = ensureDay(key);
       const i = +e.target.dataset.idx;
       data.sessions[i].distance = e.target.textContent.trim();
       updateStats(); scheduleSave(key);
@@ -1000,6 +1027,7 @@ function renderFocusSessions(){
   });
   wrap.querySelectorAll('[data-role="s-pace"]').forEach(el=>{
     el.addEventListener('input', e=>{
+      const data = ensureDay(key);
       const i = +e.target.dataset.idx;
       data.sessions[i].pace = e.target.textContent.trim();
       scheduleSave(key);
@@ -1010,6 +1038,7 @@ function renderFocusSessions(){
     el.addEventListener('click', e=>{
       e.preventDefault();
       e.stopPropagation();
+      const data = ensureDay(key);
       const i = Number(e.currentTarget.dataset.idx);
       if(!Number.isInteger(i) || i < 0 || i >= data.sessions.length) return;
       if(data.sessions.length <= 1) return;
