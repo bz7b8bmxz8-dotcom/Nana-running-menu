@@ -727,8 +727,9 @@ function updateNextRaceWidget(val){
     Object.keys(days).forEach(dk=>{
       if(dk < todayKey) return;
       const day = normalizeDay(days[dk]);
-      if(!day.sessions.some(s=>s.type==='race')) return;
-      if(!best || dk < best.dateKey) best = {dateKey: dk, memo: day.memo};
+      const raceSession = day.sessions.find(s=>s.type==='race');
+      if(!raceSession) return;
+      if(!best || dk < best.dateKey) best = {dateKey: dk, name: raceSession.menu};
     });
   });
 
@@ -744,7 +745,7 @@ function updateNextRaceWidget(val){
   el.style.display = 'flex';
   document.getElementById('raceDays').textContent = diffDays;
   document.getElementById('raceDaysUnit').textContent = diffDays===0 ? '本日!' : '日後';
-  document.getElementById('raceName').textContent = best.memo && best.memo.trim() ? best.memo : '(レース名はメモに入力してください)';
+  document.getElementById('raceName').textContent = best.name && best.name.trim() ? best.name : '(レース名はメニュー欄に入力してください)';
   document.getElementById('raceDate').textContent = `${m}月${d}日 (${WEEKDAY_JA[raceDate.getDay()]})`;
 }
 
