@@ -144,6 +144,27 @@
     white-space:nowrap;
   }
 
+  /* ---- next-race countdown ---- */
+  .race-countdown{
+    display:none;align-items:center;gap:18px;background:var(--route-red);
+    color:#fff;border-radius:12px;padding:16px 20px;margin:0 0 20px;
+    box-shadow:0 6px 18px rgba(225,72,61,.25);
+  }
+  .race-days-block{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-width:74px;border-right:2px dashed rgba(255,255,255,.35);padding-right:16px;
+  }
+  .race-days{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:.85;}
+  .race-days-unit{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;margin-top:2px;}
+  .race-info{flex:1;min-width:0;}
+  .race-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:rgba(255,255,255,.8);text-transform:uppercase;}
+  .race-name{font-family:'Inter',sans-serif;font-weight:800;font-size:19px;margin-top:3px;overflow-wrap:anywhere;}
+  .race-date{font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,255,255,.85);margin-top:3px;}
+  @media(max-width:700px){
+    .race-countdown{flex-wrap:wrap;gap:10px;}
+    .race-days-block{border-right:none;padding-right:0;}
+  }
+
   /* ---- focus card: large view of the selected day ---- */
   .focus-card{
     background:var(--panel);border:1px solid var(--line);border-radius:12px;
@@ -363,6 +384,18 @@
       <div class="subline">天気: <b>東京</b> の週間予報</div>
     </div>
 
+    <div class="race-countdown" id="raceCountdown">
+      <div class="race-days-block">
+        <div class="race-days" id="raceDays">-</div>
+        <div class="race-days-unit" id="raceDaysUnit">日後</div>
+      </div>
+      <div class="race-info">
+        <div class="race-label">🏁 NEXT RACE</div>
+        <div class="race-name" id="raceName">-</div>
+        <div class="race-date" id="raceDate">-</div>
+      </div>
+    </div>
+
     <div class="lapboard" id="lapboard"></div>
 
     <div class="focus-card" id="focusCard">
@@ -568,7 +601,7 @@ function loadMonth(year, month){
         // register the month so it appears in the dropdown even before any edits
         db.ref('months/'+monthKey(year,month)+'/meta').set({createdAt:Date.now()}).catch(()=>{});
       }
-      refreshMonthSelect();
+      refreshMonthList();
       return;
     }
 
@@ -635,7 +668,7 @@ async function saveDay(dateKey){
     // only this single day's node is written - edits to other days
     // (from another device/tab) are never touched or overwritten
     await daysRef.child(dateKey).set(state.dayData[dateKey]);
-    refreshMonthSelect();
+    refreshMonthList();
   }catch(e){
     setStatus('⚠ 保存に失敗しました');
     console.error(e);
@@ -661,18 +694,58 @@ document.addEventListener('visibilitychange', ()=>{
 });
 window.addEventListener('pagehide', ()=>{ flushPendingSaves(); });
 
-async function refreshMonthSelect(){
+async function refreshMonthList(){
   if(!db) return;
-  const sel = document.getElementById('monthSelect');
   try{
     const snap = await db.ref('months').once('value');
     const val = snap.val() || {};
-    const months = Object.keys(val).sort();
-    const cur = monthKey(state.year, state.month);
-    if(!months.includes(cur)) months.push(cur);
-    months.sort();
-    sel.innerHTML = months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m.replace('-','年 ')}月</option>`).join('');
+    updateMonthSelect(val);
+    updateNextRaceWidget(val);
   }catch(e){ /* ignore */ }
+}
+
+function updateMonthSelect(val){
+  const sel = document.getElementById('monthSelect');
+  const months = Object.keys(val).sort();
+  const cur = monthKey(state.year, state.month);
+  if(!months.includes(cur)) months.push(cur);
+  months.sort();
+  sel.innerHTML = months.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m.replace('-','年 ')}月</option>`).join('');
+}
+
+// Scans every month's days (not just the one currently open) for the
+// nearest today-or-later day that has a "レース" session, and shows a
+// countdown + the race name pulled from that day's memo field. This is why
+// it's driven off a fresh Firebase read rather than state.dayData - the
+// race might be in a month the person isn't currently viewing.
+function updateNextRaceWidget(val){
+  const now = new Date();
+  const todayKey = fmtDate(now.getFullYear(), now.getMonth(), now.getDate());
+  let best = null;
+  Object.keys(val).forEach(mk=>{
+    const days = (val[mk] && val[mk].days) || {};
+    Object.keys(days).forEach(dk=>{
+      if(dk < todayKey) return;
+      const day = normalizeDay(days[dk]);
+      if(!day.sessions.some(s=>s.type==='race')) return;
+      if(!best || dk < best.dateKey) best = {dateKey: dk, memo: day.memo};
+    });
+  });
+
+  const el = document.getElementById('raceCountdown');
+  if(!best){ el.style.display = 'none'; return; }
+
+  const [y,m,d] = best.dateKey.split('-').map(Number);
+  const raceDate = new Date(y, m-1, d);
+  const [ty,tm,td] = todayKey.split('-').map(Number);
+  const today = new Date(ty, tm-1, td);
+  const diffDays = Math.round((raceDate - today) / 86400000);
+
+  el.style.display = 'flex';
+  document.getElementById('raceDays').textContent = diffDays;
+  document.getElementById('raceDaysUnit').textContent = diffDays===0 ? '本日!' : '日後';
+  document.getElementById('raceName').textContent = best.memo && best.memo.trim() ? best.memo : '(レース名はメモに入力してください)';
+  document.getElementById('raceDate').textContent = `${m}月${d}日 (${WEEKDAY_JA[raceDate.getDay()]})`;
 }
 
 function showLoadingOverlay(show){
