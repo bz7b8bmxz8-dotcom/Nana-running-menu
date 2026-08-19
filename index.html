@@ -518,6 +518,13 @@ let state = {
 let saveTimers = {};     // dateKey -> timeoutId  (debounce still pending, not yet sent)
 let inFlightSaves = {};  // dateKey -> true while a write request is in flight to Firebase
 let daysRef = null;      // firebase ref to months/{monthKey}/days
+// True only once the CURRENT month's real data has actually been read back
+// from Firebase at least once. Weather auto-fill must never write anything
+// before this is true - otherwise it would call ensureDay() on days whose
+// real content hasn't loaded yet, silently creating blank entries and
+// saving over whatever menus were already there (fetchWeather() and
+// loadMonth() both run at page-load time and race against each other).
+let monthDataLoaded = false;
 
 function monthKey(y,m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
 function fmtDate(y,m,d){ return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
@@ -578,6 +585,7 @@ function loadMonth(year, month){
   if(!db){ setStatus('⚠ Firebase未設定'); return; }
   showLoadingOverlay(true);
   if(daysRef) daysRef.off();
+  monthDataLoaded = false;
 
   state.year = year; state.month = month;
   const now = new Date();
@@ -594,6 +602,7 @@ function loadMonth(year, month){
     if(firstCallback){
       firstCallback = false;
       state.dayData = days;
+      monthDataLoaded = true;
       renderCalendar();
       renderFocusCard();
       showLoadingOverlay(false);
@@ -602,6 +611,11 @@ function loadMonth(year, month){
         db.ref('months/'+monthKey(year,month)+'/meta').set({createdAt:Date.now()}).catch(()=>{});
       }
       refreshMonthList();
+      // Weather may have already been fetched while this month's real data
+      // was still loading, in which case applyForecastToCalendar() skipped
+      // itself earlier (see the guard there). Run it now that it's finally
+      // safe to know what's already on each day.
+      if(Object.keys(state.forecast).length) applyForecastToCalendar();
       return;
     }
 
@@ -1245,6 +1259,12 @@ function renderLapboard(){
 }
 
 function applyForecastToCalendar(){
+  // Never touch/save any day until we actually know what Firebase already
+  // has for this month - otherwise ensureDay() below would silently create
+  // blank entries for days whose real content just hasn't loaded yet, and
+  // saving those blanks would wipe out real menus. loadMonth() re-runs this
+  // itself once loading finishes, so nothing is lost by skipping here.
+  if(!monthDataLoaded) return;
   let touchedKeys = [];
   Object.keys(state.forecast).forEach(key=>{
     const data = ensureDay(key);
