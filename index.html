@@ -71,6 +71,16 @@
   }
   .status{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-soft);white-space:nowrap;}
 
+  /* ---- update reminder (shown until the unrecorded days are recorded) ---- */
+  .reminder{
+    display:none;background:var(--lane-yellow);color:var(--ink);border-radius:10px;
+    padding:12px 16px;margin-bottom:14px;
+    box-shadow:0 4px 12px rgba(244,193,15,.35);
+  }
+  .reminder.show{display:block;}
+  .reminder-title{font-weight:800;font-size:14px;}
+  .reminder-detail{font-size:12.5px;font-weight:600;margin-top:4px;line-height:1.6;}
+
   .config-block{
     background:#FDECEC;border:1.5px solid #F3B4B0;border-radius:10px;
     padding:20px 22px;margin-bottom:20px;color:#8A241D;font-size:13px;line-height:1.7;
@@ -374,6 +384,11 @@
     <span>⚠️このメニュー表は共有データなので保存済み表示を確認してください</span>
     <span class="status" id="connStatus"></span>
     <span class="status" id="statusText"></span>
+  </div>
+
+  <div class="reminder" id="updateReminder" role="alert">
+    <div class="reminder-title">📣 メニュー表の更新をお願いします</div>
+    <div class="reminder-detail" id="updateReminderDetail"></div>
   </div>
 
   <div id="exportRoot">
@@ -1353,6 +1368,142 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
 });
 
 /* ---------------- init ---------------- */
+/* ---------------- update reminder: pure logic (no DOM / Firebase) ---------------- */
+// Records are judged per week (week starts on Sunday, Japan time):
+//   Wednesday -> checks Sun / Mon / Tue of that same week
+//   Saturday  -> checks Wed / Thu / Fri of that same week
+// A day counts as "recorded" only when its 実施 checkbox (done) is on.
+// Once a check has become active (Wed / Sat) it stays active on every
+// following day until all of its days are recorded. Because it is recomputed
+// from the saved data every time (no one-off flag), the notice survives
+// reloads and app restarts, and clears itself as soon as the days are recorded.
+// Unresolved checks from LAST week are carried over and shown separately;
+// anything older than that is dropped so old weeks never pile up.
+const REMINDER_CARRY_OVER_WEEKS = 1;
+
+function jstDateString(date){
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit'
+  }).formatToParts(date);
+  const get = t => parts.find(p=>p.type===t).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+function reminderParse(s){
+  const [y,m,d] = s.split('-').map(Number);
+  return Date.UTC(y, m-1, d);
+}
+function reminderAddDays(s, n){
+  const t = new Date(reminderParse(s) + n*86400000);
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth()+1).padStart(2,'0')}-${String(t.getUTCDate()).padStart(2,'0')}`;
+}
+function reminderDow(s){ return new Date(reminderParse(s)).getUTCDay(); } // 0=Sun
+
+// the two checks of one week, and the day each one becomes active
+function reminderBlocks(sunday){
+  return [
+    {days:[sunday, reminderAddDays(sunday,1), reminderAddDays(sunday,2)], activeFrom: reminderAddDays(sunday,3)}, // Sun-Tue, active from Wed
+    {days:[reminderAddDays(sunday,3), reminderAddDays(sunday,4), reminderAddDays(sunday,5)], activeFrom: reminderAddDays(sunday,6)} // Wed-Fri, active from Sat
+  ];
+}
+// every check that is active today: week 0 = this week, week 1 = last week...
+function reminderActiveBlocks(todayStr){
+  const sunday = reminderAddDays(todayStr, -reminderDow(todayStr));
+  const out = [];
+  for(let w=0; w<=REMINDER_CARRY_OVER_WEEKS; w++){
+    reminderBlocks(reminderAddDays(sunday, -7*w)).forEach(b=>{
+      if(todayStr >= b.activeFrom) out.push({week:w, days:b.days}); // YYYY-MM-DD compares correctly as text
+    });
+  }
+  return out;
+}
+// returns the unrecorded days: current = this week's checks, carried = last week's
+function evaluateReminder(todayStr, isRecorded){
+  const result = {current:[], carried:[]};
+  reminderActiveBlocks(todayStr).forEach(b=>{
+    b.days.forEach(d=>{
+      if(!isRecorded(d)) (b.week===0 ? result.current : result.carried).push(d);
+    });
+  });
+  result.current.sort(); result.carried.sort();
+  return result;
+}
+
+/* ---------------- update reminder: live data + display ---------------- */
+function reminderNow(){ return new Date(); }
+
+const reminderLive = { today:null, listeners:{}, done:{}, loaded:{} };
+
+function reminderDays(todayStr){
+  const set = new Set();
+  reminderActiveBlocks(todayStr).forEach(b=>b.days.forEach(d=>set.add(d)));
+  return [...set];
+}
+function reminderLabel(d){
+  const [, m, dd] = d.split('-').map(Number);
+  return `${m}/${dd}(${WEEKDAY_JA[reminderDow(d)]})`;
+}
+
+// One small listener per day that has to be checked, reading only that day's
+// `done` value. They sit on the day's own path, so loadMonth()'s daysRef.off()
+// (which detaches listeners on the whole month) can never remove them, and
+// they fire immediately when this device saves a change, so the notice
+// disappears the moment the last day is ticked.
+function reminderSyncListeners(todayStr){
+  const need = new Set(reminderDays(todayStr));
+  Object.keys(reminderLive.listeners).forEach(d=>{
+    if(need.has(d)) return;
+    const l = reminderLive.listeners[d];
+    l.ref.off('value', l.cb);
+    delete reminderLive.listeners[d]; delete reminderLive.done[d]; delete reminderLive.loaded[d];
+  });
+  need.forEach(d=>{
+    if(reminderLive.listeners[d]) return;
+    const ref = db.ref('months/'+d.slice(0,7)+'/days/'+d+'/done');
+    const cb = snap=>{
+      reminderLive.done[d] = snap.val() === true;
+      reminderLive.loaded[d] = true;
+      renderReminder();
+    };
+    ref.on('value', cb, err=>{ console.error('reminder listener error', err); });
+    reminderLive.listeners[d] = {ref, cb};
+  });
+}
+
+function renderReminder(){
+  const el = document.getElementById('updateReminder');
+  const today = reminderLive.today;
+  if(!el || !today) return;
+  // wait until every day to check has been read, so a half-loaded state never
+  // flashes a false alarm
+  if(!reminderDays(today).every(d=>reminderLive.loaded[d])) return;
+
+  const res = evaluateReminder(today, d=>reminderLive.done[d] === true);
+  const lines = [];
+  if(res.current.length) lines.push('実施チェックがまだの日: ' + res.current.map(reminderLabel).join('、'));
+  if(res.carried.length) lines.push('先週分: ' + res.carried.map(reminderLabel).join('、'));
+  if(!lines.length){ el.classList.remove('show'); return; }
+  document.getElementById('updateReminderDetail').innerHTML = lines.join('<br>');
+  el.classList.add('show');
+}
+
+function reminderTick(){
+  const today = jstDateString(reminderNow());
+  if(today !== reminderLive.today){ // first run, or the date (Japan time) rolled over
+    reminderLive.today = today;
+    reminderSyncListeners(today);
+  }
+  renderReminder();
+}
+function startReminder(){
+  if(!db) return;
+  reminderTick();
+  setInterval(reminderTick, 30000);
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible') reminderTick();
+  });
+}
+startReminder();
+
 renderWeekrow();
 if(db){
   loadMonth(state.year, state.month);
