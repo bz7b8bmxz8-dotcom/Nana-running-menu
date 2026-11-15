@@ -1372,7 +1372,8 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
 // Records are judged per week (week starts on Sunday, Japan time):
 //   Wednesday -> checks Sun / Mon / Tue of that same week
 //   Saturday  -> checks Wed / Thu / Fri of that same week
-// A day counts as "recorded" only when its 実施 checkbox (done) is on.
+// A day counts as "recorded" when its 実施 checkbox (done) is on, OR when it is
+// an OFF day (see reminderDayRecorded) - a planned rest day needs no tick.
 // Once a check has become active (Wed / Sat) it stays active on every
 // following day until all of its days are recorded. Because it is recomputed
 // from the saved data every time (no one-off flag), the notice survives
@@ -1397,6 +1398,19 @@ function reminderAddDays(s, n){
   return `${t.getUTCFullYear()}-${String(t.getUTCMonth()+1).padStart(2,'0')}-${String(t.getUTCDate()).padStart(2,'0')}`;
 }
 function reminderDow(s){ return new Date(reminderParse(s)).getUTCDay(); } // 0=Sun
+
+// raw = the day's saved data from Firebase (or null when nothing is saved).
+// Recorded when the 実施 checkbox is on, or when the day is an OFF day: at
+// least one practice has the type OFF and no practice has a real type
+// (jog / ポイント / 準ポイント / レース). Practices whose type is still unset
+// are ignored. As soon as a real practice is chosen, the day needs the tick.
+function reminderDayRecorded(raw){
+  if(!raw) return false;
+  const day = normalizeDay(raw); // same reading rules as the rest of the app
+  if(day.done) return true;
+  const types = day.sessions.map(x=>x.type);
+  return types.includes('off') && !types.some(t=>t && t!=='off');
+}
 
 // the two checks of one week, and the day each one becomes active
 function reminderBlocks(sunday){
@@ -1431,7 +1445,7 @@ function evaluateReminder(todayStr, isRecorded){
 /* ---------------- update reminder: live data + display ---------------- */
 function reminderNow(){ return new Date(); }
 
-const reminderLive = { today:null, listeners:{}, done:{}, loaded:{} };
+const reminderLive = { today:null, listeners:{}, day:{}, loaded:{} };
 
 function reminderDays(todayStr){
   const set = new Set();
@@ -1444,23 +1458,23 @@ function reminderLabel(d){
 }
 
 // One small listener per day that has to be checked, reading only that day's
-// `done` value. They sit on the day's own path, so loadMonth()'s daysRef.off()
+// own data. They sit on the day's own path, so loadMonth()'s daysRef.off()
 // (which detaches listeners on the whole month) can never remove them, and
 // they fire immediately when this device saves a change, so the notice
-// disappears the moment the last day is ticked.
+// disappears the moment the last day is ticked or set to OFF.
 function reminderSyncListeners(todayStr){
   const need = new Set(reminderDays(todayStr));
   Object.keys(reminderLive.listeners).forEach(d=>{
     if(need.has(d)) return;
     const l = reminderLive.listeners[d];
     l.ref.off('value', l.cb);
-    delete reminderLive.listeners[d]; delete reminderLive.done[d]; delete reminderLive.loaded[d];
+    delete reminderLive.listeners[d]; delete reminderLive.day[d]; delete reminderLive.loaded[d];
   });
   need.forEach(d=>{
     if(reminderLive.listeners[d]) return;
-    const ref = db.ref('months/'+d.slice(0,7)+'/days/'+d+'/done');
+    const ref = db.ref('months/'+d.slice(0,7)+'/days/'+d);
     const cb = snap=>{
-      reminderLive.done[d] = snap.val() === true;
+      reminderLive.day[d] = snap.val();
       reminderLive.loaded[d] = true;
       renderReminder();
     };
@@ -1477,7 +1491,7 @@ function renderReminder(){
   // flashes a false alarm
   if(!reminderDays(today).every(d=>reminderLive.loaded[d])) return;
 
-  const res = evaluateReminder(today, d=>reminderLive.done[d] === true);
+  const res = evaluateReminder(today, d=>reminderDayRecorded(reminderLive.day[d]));
   const lines = [];
   if(res.current.length) lines.push('実施チェックがまだの日: ' + res.current.map(reminderLabel).join('、'));
   if(res.carried.length) lines.push('先週分: ' + res.carried.map(reminderLabel).join('、'));
